@@ -1,0 +1,2 @@
+Modify take, drop, and rotate to accept numbers larger than the length of the array
+Modify take, drop, and rotate to accept percentages as floats
