@@ -1,0 +1,4 @@
+[report]
+exclude_lines =
+    ^\s*pass\s*$
+    ^\s*return Error\('unsupported subject type'\)\s*$
