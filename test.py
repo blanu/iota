@@ -1,4 +1,4 @@
-from storage import *
+from iota import *
 from testify import TestCase, assert_equal, assert_not_equal, assert_isinstance
 from squeeze import squeeze, expand
 
@@ -55,209 +55,230 @@ class Pythonic(TestCase):
         assert_not_equal(MixedArray([Integer(1)]), Integer(1))
         assert_not_equal(MixedArray([Integer(1)]), Float(1))
 
-class AddTests(TestCase):
-    def test_add_integer_integer(self):
+class PlusTests(TestCase):
+    def test_plus_errors(self):
+        assert_isinstance(Integer(0).plus(Error('test error')), Error)
+        assert_isinstance(Float(0).plus(Error('test error')), Error)
+        assert_isinstance(IntegerArray([0]).plus(Error('test error')), Error)
+        assert_isinstance(FloatArray([0]).plus(Error('test error')), Error)
+        assert_isinstance(MixedArray([Integer(0)]).plus(Error('test error')), Error)
+
+    def test_plus_integer_integer(self):
         assert_equal(Integer(1).plus(Integer(2)), Integer(3))
         assert_equal(Integer(-1).plus(Integer(-1)), Integer(-2))
         assert_equal(Integer(0).plus(Integer(0)), Integer(0))
 
-    def test_add_integer_float(self):
+    def test_plus_integer_float(self):
         assert_equal(Integer(1).plus(Float(2)), Float(3))
         assert_equal(Integer(-1).plus(Float(-1)), Float(-2))
         assert_equal(Integer(0).plus(Float(0)), Float(0))
 
-    def test_add_integer_integer_array(self):
+    def test_plus_integer_integer_array(self):
         assert_equal(Integer(1).plus(IntegerArray([2, 3])), IntegerArray([3, 4]))
         assert_equal(Integer(-1).plus(IntegerArray([-1, 0])), IntegerArray([-2, -1]))
         assert_equal(Integer(0).plus(IntegerArray([0, 1])), IntegerArray([0, 1]))
 
-    def test_add_integer_float_array(self):
+    def test_plus_integer_float_array(self):
         assert_equal(Integer(1).plus(FloatArray([2, 3])), FloatArray([3, 4]))
         assert_equal(Integer(-1).plus(FloatArray([-1, 0])), FloatArray([-2, -1]))
         assert_equal(Integer(0).plus(FloatArray([0, 1])), FloatArray([0, 1]))
 
-    def test_add_integer_mixed_array(self):
+    def test_plus_integer_mixed_array(self):
         assert_equal(Integer(1).plus(MixedArray([Integer(2), Float(3)])), MixedArray([Integer(3), Float(4)]))
         assert_equal(Integer(-1).plus(MixedArray([Integer(-1), Float(0)])), MixedArray([Integer(-2), Float(-1)]))
         assert_equal(Integer(0).plus(MixedArray([Integer(0), Float(1)])), MixedArray([Integer(0), Float(1)]))
 
-    def test_add_float_integer(self):
+    def test_plus_float_integer(self):
         assert_equal(Float(1).plus(Integer(2)), Float(3))
         assert_equal(Float(-1).plus(Integer(-1)), Float(-2))
         assert_equal(Float(0).plus(Integer(0)), Float(0))
 
-    def test_add_float_float(self):
+    def test_plus_float_float(self):
         assert_equal(Float(1).plus(Float(2)), Float(3))
         assert_equal(Float(-1).plus(Float(-1)), Float(-2))
         assert_equal(Float(0).plus(Float(0)), Float(0))
 
-    def test_add_float_integer_array(self):
+    def test_plus_float_integer_array(self):
         assert_equal(Float(1).plus(IntegerArray([2, 3])), FloatArray([3, 4]))
         assert_equal(Float(-1).plus(IntegerArray([-1, 0])), FloatArray([-2, -1]))
         assert_equal(Float(0).plus(IntegerArray([0, 1])), FloatArray([0, 1]))
 
-    def test_add_float_float_array(self):
+    def test_plus_float_float_array(self):
         assert_equal(Float(1).plus(FloatArray([2, 3])), FloatArray([3, 4]))
         assert_equal(Float(-1).plus(FloatArray([-1, 0])), FloatArray([-2, -1]))
         assert_equal(Float(0).plus(FloatArray([0, 1])), FloatArray([0, 1]))
 
-    def test_add_float_mixed_array(self):
+    def test_plus_float_mixed_array(self):
         assert_equal(Float(1).plus(MixedArray([Integer(2), Float(3)])), MixedArray([Float(3), Float(4)]))
         assert_equal(Float(-1).plus(MixedArray([Integer(-1), Float(0)])), MixedArray([Float(-2), Float(-1)]))
         assert_equal(Float(0).plus(MixedArray([Integer(0), Float(1)])), MixedArray([Float(0), Float(1)]))
 
-    def test_add_integer_array_integer(self):
+    def test_plus_integer_array_integer(self):
         assert_equal(IntegerArray([2, 3]).plus(Integer(1)), IntegerArray([3, 4]))
         assert_equal(IntegerArray([-1, 0]).plus(Integer(-1)), IntegerArray([-2, -1]))
         assert_equal(IntegerArray([0, 1]).plus(Integer(0)), IntegerArray([0, 1]))
 
-    def test_add_integer_array_float(self):
+    def test_plus_integer_array_float(self):
         assert_equal(IntegerArray([2, 3]).plus(Float(1)), FloatArray([3, 4]))
         assert_equal(IntegerArray([-1, 0]).plus(Float(-1)), FloatArray([-2, -1]))
         assert_equal(IntegerArray([0, 1]).plus(Float(0)), FloatArray([0, 1]))
 
-    def test_add_integer_array_integer_array(self):
+    def test_plus_integer_array_integer_array(self):
         assert_equal(IntegerArray([2, 3]).plus(IntegerArray([2, 3])), MixedArray([IntegerArray([4, 5]), IntegerArray([5, 6])]))
         assert_equal(IntegerArray([-1, 0]).plus(IntegerArray([2, 3])), MixedArray([IntegerArray([1, 2]), IntegerArray([2, 3])]))
         assert_equal(IntegerArray([0, 1]).plus(IntegerArray([2, 3])), MixedArray([IntegerArray([2, 3]), IntegerArray([3, 4])]))
 
-    def test_add_integer_array_float_array(self):
+    def test_plus_integer_array_float_array(self):
         assert_equal(IntegerArray([2, 3]).plus(FloatArray([2, 3])), MixedArray([FloatArray([4, 5]), FloatArray([5, 6])]))
         assert_equal(IntegerArray([-1, 0]).plus(FloatArray([2, 3])), MixedArray([FloatArray([1, 2]), FloatArray([2, 3])]))
         assert_equal(IntegerArray([0, 1]).plus(FloatArray([2, 3])), MixedArray([FloatArray([2, 3]), FloatArray([3, 4])]))
 
-    def test_add_integer_array_mixed_array(self):
+    def test_plus_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).plus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(4), Float(5)]), MixedArray([Integer(5), Float(6)])]))
         assert_equal(IntegerArray([-1, 0]).plus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(1), Float(2)]), MixedArray([Integer(2), Float(3)])]))
         assert_equal(IntegerArray([0, 1]).plus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(2), Float(3)]), MixedArray([Integer(3), Float(4)])]))
 
-    def test_add_mixed_array_integer(self):
+    def test_plus_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).plus(Integer(2)), MixedArray([Integer(4), Float(5)]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).plus(Integer(2)), MixedArray([Integer(1), Float(2)]))
         assert_equal(MixedArray([Integer(0), Float(1)]).plus(Integer(2)), MixedArray([Integer(2), Float(3)]))
 
-    def test_add_mixed_array_float(self):
+    def test_plus_mixed_array_float(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).plus(Float(2)), MixedArray([Float(4), Float(5)]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).plus(Float(2)), MixedArray([Float(1), Float(2)]))
         assert_equal(MixedArray([Integer(0), Float(1)]).plus(Float(2)), MixedArray([Float(2), Float(3)]))
 
-    def test_add_mixed_array_integer_array(self):
+    def test_plus_mixed_array_integer_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).plus(IntegerArray([2, 3])), MixedArray([IntegerArray([4, 5]), FloatArray([5, 6])]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).plus(IntegerArray([2, 3])), MixedArray([IntegerArray([1, 2]), FloatArray([2, 3])]))
         assert_equal(MixedArray([Integer(0), Float(1)]).plus(IntegerArray([2, 3])), MixedArray([IntegerArray([2, 3]), FloatArray([3, 4])]))
 
-    def test_add_mixed_array_float_array(self):
+    def test_plus_mixed_array_float_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).plus(FloatArray([2, 3])), MixedArray([FloatArray([4, 5]), FloatArray([5, 6])]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).plus(FloatArray([2, 3])), MixedArray([FloatArray([1, 2]), FloatArray([2, 3])]))
         assert_equal(MixedArray([Integer(0), Float(1)]).plus(FloatArray([2, 3])), MixedArray([FloatArray([2, 3]), FloatArray([3, 4])]))
 
-    def test_add_mixed_array_mixed_array(self):
+    def test_plus_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).plus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(4), Float(5)]), MixedArray([Float(5), Float(6)])]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).plus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(1), Float(2)]), MixedArray([Float(2), Float(3)])]))
         assert_equal(MixedArray([Integer(0), Float(1)]).plus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(2), Float(3)]), MixedArray([Float(3), Float(4)])]))
 
-class SubtractTests(TestCase):
-    def test_subtract_integer_integer(self):
+class MinusTests(TestCase):
+    def test_minus_errors(self):
+        assert_isinstance(Integer(0).minus(Error('test error')), Error)
+        assert_isinstance(Float(0).minus(Error('test error')), Error)
+        assert_isinstance(IntegerArray([0]).minus(Error('test error')), Error)
+        assert_isinstance(FloatArray([0]).minus(Error('test error')), Error)
+        assert_isinstance(MixedArray([Integer(0)]).minus(Error('test error')), Error)
+
+    def test_minus_integer_integer(self):
         assert_equal(Integer(1).minus(Integer(2)), Integer(-1))
         assert_equal(Integer(-1).minus(Integer(-1)), Integer(0))
         assert_equal(Integer(0).minus(Integer(0)), Integer(0))
 
-    def test_subtract_integer_float(self):
+    def test_minus_integer_float(self):
         assert_equal(Integer(1).minus(Float(2)), Float(-1))
         assert_equal(Integer(-1).minus(Float(-1)), Float(0))
         assert_equal(Integer(0).minus(Float(0)), Float(0))
 
-    def test_subtract_integer_integer_array(self):
+    def test_minus_integer_integer_array(self):
         assert_equal(Integer(1).minus(IntegerArray([2, 3])), IntegerArray([-1, -2]))
         assert_equal(Integer(-1).minus(IntegerArray([-1, 0])), IntegerArray([0, -1]))
         assert_equal(Integer(0).minus(IntegerArray([0, 1])), IntegerArray([0, -1]))
 
-    def test_subtract_integer_float_array(self):
+    def test_minus_integer_float_array(self):
         assert_equal(Integer(1).minus(FloatArray([2, 3])), FloatArray([-1, -2]))
         assert_equal(Integer(-1).minus(FloatArray([-1, 0])), FloatArray([0, -1]))
         assert_equal(Integer(0).minus(FloatArray([0, 1])), FloatArray([0, -1]))
 
-    def test_subtract_integer_mixed_array(self):
+    def test_minus_integer_mixed_array(self):
         assert_equal(Integer(1).minus(MixedArray([Integer(2), Float(3)])), MixedArray([Integer(-1), Float(-2)]))
         assert_equal(Integer(-1).minus(MixedArray([Integer(-1), Float(0)])), MixedArray([Integer(0), Float(-1)]))
         assert_equal(Integer(0).minus(MixedArray([Integer(0), Float(1)])), MixedArray([Integer(0), Float(-1)]))
 
-    def test_subtract_float_integer(self):
+    def test_minus_float_integer(self):
         assert_equal(Float(1).minus(Integer(-1)), Float(2))
         assert_equal(Float(-1).minus(Integer(0)), Float(-1))
         assert_equal(Float(0).minus(Integer(0)), Float(0))
 
-    def test_subtract_float_float(self):
+    def test_minus_float_float(self):
         assert_equal(Float(1).minus(Float(2)), Float(-1))
         assert_equal(Float(-1).minus(Float(-1)), Float(0))
         assert_equal(Float(0).minus(Float(0)), Float(0))
 
-    def test_subtract_float_integer_array(self):
+    def test_minus_float_integer_array(self):
         assert_equal(Float(1).minus(IntegerArray([2, 3])), FloatArray([-1, -2]))
         assert_equal(Float(-1).minus(IntegerArray([-1, 0])), FloatArray([0, -1]))
         assert_equal(Float(0).minus(IntegerArray([0, 1])), FloatArray([0, -1]))
 
-    def test_subtract_float_float_array(self):
+    def test_minus_float_float_array(self):
         assert_equal(Float(1).minus(FloatArray([2, 3])), FloatArray([-1, -2]))
         assert_equal(Float(-1).minus(FloatArray([-1, 0])), FloatArray([0, -1]))
         assert_equal(Float(0).minus(FloatArray([0, 1])), FloatArray([0, -1]))
 
-    def test_subtract_float_mixed_array(self):
+    def test_minus_float_mixed_array(self):
         assert_equal(Float(1).minus(MixedArray([Integer(2), Float(3)])), MixedArray([Float(-1), Float(-2)]))
         assert_equal(Float(-1).minus(MixedArray([Integer(-1), Float(0)])), MixedArray([Float(0), Float(-1)]))
         assert_equal(Float(0).minus(MixedArray([Integer(0), Float(1)])), MixedArray([Float(0), Float(-1)]))
 
-    def test_subtract_integer_array_integer(self):
+    def test_minus_integer_array_integer(self):
         assert_equal(IntegerArray([2, 3]).minus(Integer(1)), IntegerArray([1, 2]))
         assert_equal(IntegerArray([-1, 0]).minus(Integer(-1)), IntegerArray([0, 1]))
         assert_equal(IntegerArray([0, 1]).minus(Integer(0)), IntegerArray([0, 1]))
 
-    def test_subtract_integer_array_float(self):
+    def test_minus_integer_array_float(self):
         assert_equal(IntegerArray([2, 3]).minus(Float(1)), FloatArray([1, 2]))
         assert_equal(IntegerArray([-1, 0]).minus(Float(-1)), FloatArray([0, 1]))
         assert_equal(IntegerArray([0, 1]).minus(Float(0)), FloatArray([0, 1]))
 
-    def test_subtract_integer_array_integer_array(self):
+    def test_minus_integer_array_integer_array(self):
         assert_equal(IntegerArray([2, 3]).minus(IntegerArray([2, 3])), MixedArray([IntegerArray([0, -1]), IntegerArray([1, 0])]))
         assert_equal(IntegerArray([-1, 0]).minus(IntegerArray([2, 3])), MixedArray([IntegerArray([-3, -4]), IntegerArray([-2, -3])]))
         assert_equal(IntegerArray([0, 1]).minus(IntegerArray([2, 3])), MixedArray([IntegerArray([-2, -3]), IntegerArray([-1, -2])]))
 
-    def test_subtract_integer_array_float_array(self):
+    def test_minus_integer_array_float_array(self):
         assert_equal(IntegerArray([2, 3]).minus(FloatArray([2, 3])), MixedArray([FloatArray([0, -1]), FloatArray([1, 0])]))
         assert_equal(IntegerArray([-1, 0]).minus(FloatArray([2, 3])), MixedArray([FloatArray([-3, -4]), FloatArray([-2, -3])]))
         assert_equal(IntegerArray([0, 1]).minus(FloatArray([2, 3])), MixedArray([FloatArray([-2, -3]), FloatArray([-1, -2])]))
 
-    def test_subtract_integer_array_mixed_array(self):
+    def test_minus_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).minus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(0), Float(-1)]), MixedArray([Integer(1), Float(0)])]))
         assert_equal(IntegerArray([-1, 0]).minus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(-3), Float(-4)]), MixedArray([Integer(-2), Float(-3)])]))
         assert_equal(IntegerArray([0, 1]).minus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(-2), Float(-3)]), MixedArray([Integer(-1), Float(-2)])]))
 
-    def test_subtract_mixed_array_integer(self):
+    def test_minus_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).minus(Integer(2)), MixedArray([Integer(0), Float(1)]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).minus(Integer(2)), MixedArray([Integer(-3), Float(-2)]))
         assert_equal(MixedArray([Integer(0), Float(1)]).minus(Integer(2)), MixedArray([Integer(-2), Float(-1)]))
 
-    def test_subtract_mixed_array_float(self):
+    def test_minus_mixed_array_float(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).minus(Float(2)), MixedArray([Float(0), Float(1)]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).minus(Float(2)), MixedArray([Float(-3), Float(-2)]))
         assert_equal(MixedArray([Integer(0), Float(1)]).minus(Float(2)), MixedArray([Float(-2), Float(-1)]))
 
-    def test_subtract_mixed_array_integer_array(self):
+    def test_minus_mixed_array_integer_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).minus(IntegerArray([2, 3])), MixedArray([IntegerArray([0, -1]), FloatArray([1, 0])]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).minus(IntegerArray([2, 3])), MixedArray([IntegerArray([-3, -4]), FloatArray([-2, -3])]))
         assert_equal(MixedArray([Integer(0), Float(1)]).minus(IntegerArray([2, 3])), MixedArray([IntegerArray([-2, -3]), FloatArray([-1, -2])]))
 
-    def test_subtract_mixed_array_float_array(self):
+    def test_minus_mixed_array_float_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).minus(FloatArray([2, 3])), MixedArray([FloatArray([0, -1]), FloatArray([1, 0])]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).minus(FloatArray([2, 3])), MixedArray([FloatArray([-3, -4]), FloatArray([-2, -3])]))
         assert_equal(MixedArray([Integer(0), Float(1)]).minus(FloatArray([2, 3])), MixedArray([FloatArray([-2, -3]), FloatArray([-1, -2])]))
 
-    def test_subtract_mixed_array_mixed_array(self):
+    def test_minus_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).minus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(0), Float(-1)]), MixedArray([Float(1), Float(0)])]))
         assert_equal(MixedArray([Integer(-1), Float(0)]).minus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(-3), Float(-4)]), MixedArray([Float(-2), Float(-3)])]))
         assert_equal(MixedArray([Integer(0), Float(1)]).minus(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Integer(-2), Float(-3)]), MixedArray([Float(-1), Float(-2)])]))
 
 class TimesTests(TestCase):
+    def test_times_errors(self):
+        assert_isinstance(Integer(0).times(Error('test error')), Error)
+        assert_isinstance(Float(0).times(Error('test error')), Error)
+        assert_isinstance(IntegerArray([0]).times(Error('test error')), Error)
+        assert_isinstance(FloatArray([0]).times(Error('test error')), Error)
+        assert_isinstance(MixedArray([Integer(0)]).times(Error('test error')), Error)
+
     def test_times_integer_integer(self):
         assert_equal(Integer(1).times(Integer(2)), Integer(2))
 
@@ -410,33 +431,40 @@ class PowerTests(TestCase):
         assert_equal(MixedArray([Integer(2), Float(3)]).power(MixedArray([Integer(2), Float(3)])), MixedArray([MixedArray([Float(4), Float(8)]), MixedArray([Float(9), Float(27)])]))
 
 class DivideTests(TestCase):
+    def test_divide_errors(self):
+        assert_isinstance(Integer(0).divide(Error('test error')), Error)
+        assert_isinstance(Float(0).divide(Error('test error')), Error)
+        assert_isinstance(IntegerArray([0]).divide(Error('test error')), Error)
+        assert_isinstance(FloatArray([0]).divide(Error('test error')), Error)
+        assert_isinstance(MixedArray([Integer(0)]).divide(Error('test error')), Error)
+
     def test_divide_integer_integer(self):
         assert_equal(Integer(1).divide(Integer(2)), Integer(0))
-        assert_equal(Integer(1).divide(Integer(0)).type, StorageType.ERROR)
+        assert_equal(Integer(1).divide(Integer(0)).t, StorageType.ERROR)
 
     def test_divide_integer_float(self):
         assert_equal(Integer(1).divide(Float(2)), Float(0.5))
-        assert_equal(Integer(1).divide(Float(0)).type, StorageType.ERROR)
+        assert_equal(Integer(1).divide(Float(0)).t, StorageType.ERROR)
 
     def test_divide_integer_integer_array(self):
         assert_equal(Integer(1).divide(IntegerArray([2, 3])), IntegerArray([0, 0]))
-        assert_equal(Integer(1).divide(IntegerArray([0, 3])).type, StorageType.ERROR)
+        assert_equal(Integer(1).divide(IntegerArray([0, 3])).t, StorageType.ERROR)
 
     def test_divide_integer_float_array(self):
         assert_equal(Integer(1).divide(FloatArray([2, 3])), FloatArray([1.0/2.0, 1.0/3.0]))
-        assert_equal(Integer(1).divide(FloatArray([0, 3])).type, StorageType.ERROR)
+        assert_equal(Integer(1).divide(FloatArray([0, 3])).t, StorageType.ERROR)
 
     def test_divide_integer_mixed_array(self):
         assert_equal(Integer(1).divide(MixedArray([Integer(2), Float(3)])), MixedArray([Integer(0), Float(1.0/3.0)]))
-        assert_equal(Integer(1).divide(MixedArray([Integer(0), Float(3)])).type, StorageType.ERROR)
+        assert_equal(Integer(1).divide(MixedArray([Integer(0), Float(3)])).t, StorageType.ERROR)
 
     def test_divide_float_integer(self):
         assert_equal(Float(1).divide(Integer(-1)), Float(-1))
-        assert_equal(Float(1).divide(Integer(0)).type, StorageType.ERROR)
+        assert_equal(Float(1).divide(Integer(0)).t, StorageType.ERROR)
 
     def test_divide_float_float(self):
         assert_equal(Float(1).divide(Float(2)), Float(0.5))
-        assert_equal(Float(1).divide(Float(0)).type, StorageType.ERROR)
+        assert_equal(Float(1).divide(Float(0)).t, StorageType.ERROR)
 
     def test_divide_float_integer_array(self):
         assert_equal(Float(1).divide(IntegerArray([2, 3])), FloatArray([1.0/2.0, 1.0/3.0]))
@@ -714,6 +742,17 @@ class TakeTests(TestCase):
         assert_equal(FloatArray([0, 1, 0, 2]).take(IntegerArray([1])), MixedArray([FloatArray([0])]))
         assert_equal(FloatArray([0, 1, 0, 2]).take(IntegerArray([1, 2])), MixedArray([FloatArray([0]), FloatArray([0, 1])]))
         assert_isinstance(FloatArray([]).take(IntegerArray([1, 2])), Error)
+
+        assert_equal(FloatArray([0, 1, 0, 2]).take(FloatArray([])), FloatArray([]))
+        assert_equal(FloatArray([0, 1, 0, 2]).take(FloatArray([0.25])), MixedArray([FloatArray([0])]))
+        assert_equal(FloatArray([0, 1, 0, 2]).take(FloatArray([0.25, 0.5])), MixedArray([FloatArray([0]), FloatArray([0, 1])]))
+        assert_equal(FloatArray([]).take(FloatArray([0.25, 0.5])), MixedArray([FloatArray([]), FloatArray([])]))
+
+        assert_equal(FloatArray([0, 1, 0, 2]).take(MixedArray([])), FloatArray([]))
+        assert_equal(FloatArray([0, 1, 0, 2]).take(MixedArray([Float(0.25)])), MixedArray([FloatArray([0])]))
+        assert_equal(FloatArray([0, 1, 0, 2]).take(MixedArray([Float(0.25), Float(0.5)])), MixedArray([FloatArray([0]), FloatArray([0, 1])]))
+        assert_equal(FloatArray([]).take(MixedArray([Float(0.25), Float(0.5)])), MixedArray([FloatArray([]), FloatArray([])]))
+
         assert_isinstance(FloatArray([]).take(MixedArray([Integer(1), Float(2)])), Error)
 
     def test_take_mixed_array(self):
@@ -745,18 +784,40 @@ class DropTests(TestCase):
         assert_equal(IntegerArray([0, 1, 0, 2]).drop(Integer(-2)), IntegerArray([0, 1]))
         assert_equal(IntegerArray([0, 1, 0, 2]).drop(Integer(0)), IntegerArray([0, 1, 0, 2]))
         assert_equal(IntegerArray([0, 1, 0, 2]).drop(Integer(100)), IntegerArray([]))
+        assert_equal(IntegerArray([]).drop(Integer(100)), IntegerArray([]))
+        assert_equal(IntegerArray([0, 1, 0, 2]).drop(Integer(-100)), IntegerArray([]))
+        assert_equal(IntegerArray([]).drop(Integer(-100)), IntegerArray([]))
 
     def test_drop_float_array(self):
         assert_equal(FloatArray([0, 1, 0, 2]).drop(Integer(2)), FloatArray([0, 2]))
         assert_equal(FloatArray([0, 1, 0, 2]).drop(Integer(-2)), FloatArray([0, 1]))
         assert_equal(FloatArray([0, 1, 0, 2]).drop(Integer(0)), FloatArray([0, 1, 0, 2]))
         assert_equal(FloatArray([0, 1, 0, 2]).drop(Integer(100)), FloatArray([]))
+        assert_equal(FloatArray([]).drop(Integer(100)), FloatArray([]))
+        assert_equal(FloatArray([0, 1, 0, 2]).drop(Integer(-100)), FloatArray([]))
+        assert_equal(FloatArray([]).drop(Integer(-100)), FloatArray([]))
 
     def test_drop_mixed_array(self):
         assert_equal(MixedArray([Integer(0), Float(1), Integer(0), Float(2)]).drop(Integer(2)), MixedArray([Integer(0), Float(2)]))
         assert_equal(MixedArray([Integer(0), Float(1), Integer(0), Float(2)]).drop(Integer(-2)), MixedArray([Integer(0), Float(1)]))
         assert_equal(MixedArray([Integer(0), Float(1), Integer(0), Float(2)]).drop(Integer(0)), MixedArray([Integer(0), Float(1), Integer(0), Float(2)]))
         assert_equal(MixedArray([Integer(0), Float(1), Integer(0), Float(2)]).drop(Integer(100)), MixedArray([]))
+        assert_equal(MixedArray([]).drop(Integer(100)), MixedArray([]))
+        assert_equal(MixedArray([Integer(0), Float(1), Integer(0), Float(2)]).drop(Integer(-100)), MixedArray([]))
+        assert_equal(MixedArray([]).drop(Integer(-100)), MixedArray([]))
+
+    def test_drop_errors(self):
+        assert_isinstance(Integer(1).drop(Integer(-1)), Error)
+        assert_isinstance(Integer(1).drop(Float(-1)), Error)
+
+        assert_isinstance(Float(1).drop(Integer(-1)), Error)
+        assert_isinstance(Float(1).drop(Float(-1)), Error)
+
+        assert_isinstance(IntegerArray([1, 2, 3]).drop(Float(-1)), Error)
+
+        assert_isinstance(FloatArray([1, 2, 3]).drop(Float(-1)), Error)
+
+        assert_isinstance(MixedArray([Integer(1), Float(2), Integer(3)]).drop(Float(-1)), Error)
 
 class JoinTests(TestCase):
     def test_join_integer_integer(self):
@@ -804,6 +865,21 @@ class JoinTests(TestCase):
     def test_join_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).join(MixedArray([Integer(2), Float(3)])), MixedArray([Integer(2), Integer(3), Integer(2), Float(3)]))
 
+    def test_join_float_array_integer(self):
+        assert_equal(FloatArray([2, 3]).join(Integer(1)), FloatArray([2, 3, 1]))
+
+    def test_join_float_array_float(self):
+        assert_equal(FloatArray([2, 3]).join(Float(1)), FloatArray([2, 3, 1]))
+
+    def test_join_float_array_integer_array(self):
+        assert_equal(FloatArray([2, 3]).join(IntegerArray([2, 3])), FloatArray([2, 3, 2, 3]))
+
+    def test_join_float_array_float_array(self):
+        assert_equal(FloatArray([2, 3]).join(FloatArray([2, 3])), FloatArray([2, 3, 2, 3]))
+
+    def test_join_float_array_mixed_array(self):
+        assert_equal(FloatArray([2, 3]).join(MixedArray([Integer(2), Float(3)])), MixedArray([Float(2), Float(3), Integer(2), Float(3)]))
+
     def test_join_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).join(Integer(2)), MixedArray([Integer(2), Float(3), Integer(2)]))
 
@@ -820,17 +896,72 @@ class JoinTests(TestCase):
         assert_equal(MixedArray([Integer(2), Float(3)]).join(MixedArray([Integer(2), Float(3)])), MixedArray([Integer(2), Float(3), Integer(2), Float(3)]))
 
 class RotateTests(TestCase):
+    def test_rotate_integer_integer_array(self):
+        assert_equal(Integer(1).rotate(IntegerArray([0, 1, 2])), IntegerArray([1, 2, 0]))
+        assert_equal(Integer(-1).rotate(IntegerArray([0, 1, 2])), IntegerArray([2, 0, 1]))
+        assert_equal(Integer(1).rotate(IntegerArray([])), IntegerArray([]))
+        assert_equal(Integer(0).rotate(IntegerArray([0, 1, 2])), IntegerArray([0, 1, 2]))
+
+        assert_equal(Integer(1).rotate(FloatArray([0, 1, 2])), FloatArray([1, 2, 0]))
+        assert_equal(Integer(-1).rotate(FloatArray([0, 1, 2])), FloatArray([2, 0, 1]))
+        assert_equal(Integer(1).rotate(FloatArray([])), FloatArray([]))
+        assert_equal(Integer(0).rotate(FloatArray([0, 1, 2])), FloatArray([0, 1, 2]))
+
+        assert_equal(Integer(1).rotate(MixedArray([Integer(0), Float(1), Integer(2)])), MixedArray([Float(1), Integer(2), Integer(0)]))
+        assert_equal(Integer(-1).rotate(MixedArray([Integer(0), Float(1), Integer(2)])), MixedArray([Integer(2), Integer(0), Float(1)]))
+        assert_equal(Integer(1).rotate(MixedArray([])), MixedArray([]))
+        assert_equal(Integer(0).rotate(MixedArray([Integer(0), Float(1), Integer(2)])), MixedArray([Integer(0), Float(1), Integer(2)]))
+
+        assert_isinstance(Integer(1).rotate(Integer(1)), Error)
+
     def test_rotate_integer_array(self):
         assert_equal(IntegerArray([0, 1, 2]).rotate(Integer(1)), IntegerArray([1, 2, 0]))
+        assert_equal(IntegerArray([0, 1, 2]).rotate(Integer(4)), IntegerArray([1, 2, 0]))
         assert_equal(IntegerArray([0, 1, 2]).rotate(Integer(-1)), IntegerArray([2, 0, 1]))
+        assert_equal(IntegerArray([0, 1, 2]).rotate(Integer(-4)), IntegerArray([2, 0, 1]))
+        assert_equal(IntegerArray([]).rotate(Integer(1)), IntegerArray([]))
+        assert_equal(IntegerArray([0, 1, 2]).rotate(Integer(0)), IntegerArray([0, 1, 2]))
 
     def test_rotate_float_array(self):
         assert_equal(FloatArray([0, 1, 2]).rotate(Integer(1)), FloatArray([1, 2, 0]))
+        assert_equal(FloatArray([0, 1, 2]).rotate(Integer(4)), FloatArray([1, 2, 0]))
         assert_equal(FloatArray([0, 1, 2]).rotate(Integer(-1)), FloatArray([2, 0, 1]))
+        assert_equal(FloatArray([0, 1, 2]).rotate(Integer(-4)), FloatArray([2, 0, 1]))
+        assert_equal(FloatArray([]).rotate(Integer(1)), FloatArray([]))
+        assert_equal(FloatArray([0, 1, 2]).rotate(Integer(0)), FloatArray([0, 1, 2]))
 
     def test_rotate_mixed_array(self):
         assert_equal(MixedArray([Integer(0), Float(1), IntegerArray([1, 2, 3])]).rotate(Integer(1)), MixedArray([Float(1), IntegerArray([1, 2, 3]), Integer(0)]))
+        assert_equal(MixedArray([Integer(0), Float(1), IntegerArray([1, 2, 3])]).rotate(Integer(4)), MixedArray([Float(1), IntegerArray([1, 2, 3]), Integer(0)]))
         assert_equal(MixedArray([Integer(0), Float(1), IntegerArray([1, 2, 3])]).rotate(Integer(-1)), MixedArray([IntegerArray([1, 2, 3]), Integer(0), Float(1)]))
+        assert_equal(MixedArray([Integer(0), Float(1), IntegerArray([1, 2, 3])]).rotate(Integer(-4)), MixedArray([IntegerArray([1, 2, 3]), Integer(0), Float(1)]))
+        assert_equal(MixedArray([]).rotate(Integer(1)), MixedArray([]))
+        assert_equal(MixedArray([Integer(0), Float(1), IntegerArray([1, 2, 3])]).rotate(Integer(0)), MixedArray([Integer(0), Float(1), IntegerArray([1, 2, 3])]))
+
+    def test_rotate_errors(self):
+        assert_isinstance(Error('test error').rotate(IntegerArray([1, 2, 3])), Error)
+        assert_isinstance(Error('test error').rotate(FloatArray([1, 2, 3])), Error)
+        assert_isinstance(Error('test error').rotate(MixedArray([Integer(1), Float(2), Integer(3)])), Error)
+
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(Float(-1)), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).rotate(Float(-1)), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2), IntegerArray([3, 4, 5])]).rotate(Float(-1)), Error)
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(Error('test error')), Error)
+
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(IntegerArray([1])), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).rotate(IntegerArray([1])), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2), IntegerArray([3, 4, 5])]).rotate(IntegerArray([1])), Error)
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(Error('test error')), Error)
+
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(FloatArray([1])), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).rotate(FloatArray([1])), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2), IntegerArray([3, 4, 5])]).rotate(FloatArray([1])), Error)
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(Error('test error')), Error)
+
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(Error('test error')), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).rotate(MixedArray([Integer(1)])), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2), IntegerArray([3, 4, 5])]).rotate(MixedArray([Integer(1)])), Error)
+        assert_isinstance(IntegerArray([1, 2, 3]).rotate(MixedArray([Integer(1)])), Error)
 
 class SplitTests(TestCase):
     def test_split_integer_integer_array(self):
@@ -856,32 +987,104 @@ class SplitTests(TestCase):
 
     def test_split_integer_array_float(self):
         assert_equal(IntegerArray([2, 3]).split(Float(0.5)), MixedArray([IntegerArray([2]), IntegerArray([3])]))
+        assert_equal(IntegerArray([1]).split(Float(0)), IntegerArray([]))
 
     def test_split_integer_array_integer_array(self):
         assert_equal(IntegerArray([2, 3, 4]).split(IntegerArray([1, 1])), MixedArray([IntegerArray([2]), IntegerArray([3]), IntegerArray([4])]))
+        assert_equal(IntegerArray([2, 3, 4]).split(IntegerArray([])),  MixedArray([IntegerArray([2, 3, 4])]))
 
     def test_split_integer_array_float_array(self):
         assert_equal(IntegerArray([2, 3, 4]).split(FloatArray([0.5, 0.5])),  MixedArray([IntegerArray([2]), IntegerArray([3]), IntegerArray([4])]))
+        assert_equal(IntegerArray([2, 3, 4]).split(FloatArray([])),  MixedArray([IntegerArray([2, 3, 4])]))
 
     def test_split_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3, 4]).split(MixedArray([Integer(1), Float(0.5)])),  MixedArray([IntegerArray([2]), IntegerArray([3]), IntegerArray([4])]))
+        assert_equal(IntegerArray([2, 3, 4]).split(MixedArray([])),  MixedArray([IntegerArray([2, 3, 4])]))
+
+    def test_split_float_array_integer(self):
+        assert_equal(FloatArray([2, 3]).split(Integer(1)), MixedArray([FloatArray([2]), FloatArray([3])]))
+
+    def test_split_float_array_float(self):
+        assert_equal(FloatArray([2, 3]).split(Float(0.5)), MixedArray([FloatArray([2]), FloatArray([3])]))
+        assert_equal(FloatArray([2, 3]).split(Float(0)), FloatArray([]))
+        assert_equal(FloatArray([1]).split(Float(0)), FloatArray([]))
+
+    def test_split_float_array_integer_array(self):
+        assert_equal(FloatArray([2, 3, 4]).split(IntegerArray([1, 1])), MixedArray([FloatArray([2]), FloatArray([3]), FloatArray([4])]))
+        assert_equal(FloatArray([2, 3, 4]).split(IntegerArray([])),  MixedArray([FloatArray([2, 3, 4])]))
+
+    def test_split_float_array_float_array(self):
+        assert_equal(FloatArray([2, 3, 4]).split(FloatArray([0.5, 0.5])),  MixedArray([FloatArray([2]), FloatArray([3]), FloatArray([4])]))
+        assert_equal(FloatArray([2, 3, 4]).split(FloatArray([])),  FloatArray([]))
+
+    def test_split_float_array_mixed_array(self):
+        assert_equal(FloatArray([2, 3, 4]).split(MixedArray([Integer(1), Float(0.5)])),  MixedArray([FloatArray([2]), FloatArray([3]), FloatArray([4])]))
+        assert_equal(FloatArray([2, 3, 4]).split(MixedArray([])),  FloatArray([]))
 
     def test_split_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3), Integer(2)]).split(Integer(1)), MixedArray([MixedArray([Integer(2)]), MixedArray([Float(3), Integer(2)])]))
 
     def test_split_mixed_array_float(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).split(Float(0.5)), MixedArray([MixedArray([Integer(2)]), MixedArray([Float(3)])]))
+        assert_equal(MixedArray([Integer(1)]).split(Float(0)), MixedArray([]))
 
     def test_split_mixed_array_integer_array(self):
         assert_equal(MixedArray([Integer(2), Float(3), Integer(1)]).split(IntegerArray([1, 1])), MixedArray([MixedArray([Integer(2)]), MixedArray([Float(3)]), MixedArray([Integer(1)])]))
+        assert_equal(MixedArray([Integer(2), Float(3), Integer(1)]).split(IntegerArray([])), MixedArray([MixedArray([Integer(2), Float(3), Integer(1)])]))
 
     def test_split_mixed_array_float_array(self):
         assert_equal(MixedArray([Integer(2), Float(3), Integer(1)]).split(FloatArray([0.5, 0.5])), MixedArray([MixedArray([Integer(2)]), MixedArray([Float(3)]), MixedArray([Integer(1)])]))
+        assert_equal(MixedArray([Integer(2), Float(3), Integer(1)]).split(FloatArray([])), MixedArray([MixedArray([Integer(2), Float(3), Integer(1)])]))
 
     def test_split_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(2), Float(3), Integer(1)]).split(MixedArray([Integer(1), Float(0.5)])),  MixedArray([MixedArray([Integer(2)]), MixedArray([Float(3)]), MixedArray([Integer(1)])]))
+        assert_equal(MixedArray([Integer(2), Float(3), Integer(1)]).split(MixedArray([])), MixedArray([MixedArray([Integer(2), Float(3), Integer(1)])]))
+
+    def test_split_errors(self):
+        assert_isinstance(Integer(1).split(Integer(4)), Error)
+        assert_isinstance(Integer(1).split(Float(4)), Error)
+
+        assert_isinstance(Float(1).split(Integer(4)), Error)
+        assert_isinstance(Float(1).split(Float(4)), Error)
+
+        assert_isinstance(IntegerArray([]).split(Integer(4)), Error)
+        assert_isinstance(IntegerArray([1]).split(Integer(0)), Error)
+        assert_isinstance(IntegerArray([1]).split(Integer(-1)), Error)
+        assert_isinstance(IntegerArray([1]).split(Integer(4)), Error)
+        assert_isinstance(IntegerArray([1]).split(Float(-1)), Error)
+        assert_isinstance(IntegerArray([1]).split(Float(2)), Error)
+        assert_isinstance(IntegerArray([1, 2, 3]).split(IntegerArray([1, 5])), Error)
+        assert_isinstance(IntegerArray([1, 2]).split(IntegerArray([1, 1, 1])), Error)
+
+        assert_isinstance(FloatArray([]).split(Integer(4)), Error)
+        assert_isinstance(FloatArray([1]).split(Integer(0)), Error)
+        assert_isinstance(FloatArray([1]).split(Integer(-1)), Error)
+        assert_isinstance(FloatArray([1]).split(Integer(4)), Error)
+        assert_isinstance(FloatArray([1]).split(Float(-1)), Error)
+        assert_isinstance(FloatArray([1]).split(Float(2)), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).split(IntegerArray([1, 5])), Error)
+        assert_isinstance(FloatArray([1, 2]).split(IntegerArray([1, 1, 1])), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).split(FloatArray([1, 5])), Error)
+        assert_isinstance(FloatArray([1, 2]).split(FloatArray([1, 1, 1])), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).split(MixedArray([Integer(1), Integer(5)])), Error)
+        assert_isinstance(FloatArray([1, 2]).split(MixedArray([Integer(1), Integer(1), Integer(1)])), Error)
+
+        assert_isinstance(MixedArray([]).split(Integer(4)), Error)
+        assert_isinstance(MixedArray([Integer(1)]).split(Integer(0)), Error)
+        assert_isinstance(MixedArray([Integer(1)]).split(Integer(-1)), Error)
+        assert_isinstance(MixedArray([Integer(1)]).split(Integer(4)), Error)
+        assert_isinstance(MixedArray([Integer(1)]).split(Float(-1)), Error)
+        assert_isinstance(MixedArray([Integer(1)]).split(Float(2)), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2), Integer(3)]).split(IntegerArray([1, 5])), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2)]).split(IntegerArray([1, 1, 1])), Error)
 
 class FindTests(TestCase):
+    def test_find_integer_integer(self):
+        assert_isinstance(Integer(2).find(Integer(1)), Error)
+
+    def test_find_integer_float(self):
+        assert_isinstance(Float(2).find(Integer(1)), Error)
+
     def test_find_integer_integer_array(self):
         assert_equal(Integer(2).find(IntegerArray([1, 2, 3])), IntegerArray([0, 1, 0]))
 
@@ -973,6 +1176,13 @@ class RemainderTests(TestCase):
     def test_remainder_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(10), Integer(9)]).remainder(MixedArray([Integer(2), Integer(3)])), MixedArray([MixedArray([Integer(0), Integer(1)]), MixedArray([Integer(1), Integer(0)])]))
 
+    def test_remainder_errors(self):
+        assert_isinstance(Integer(10).remainder(FloatArray([2, 3])), Error)
+        assert_isinstance(Float(10).remainder(FloatArray([2, 3])), Error)
+        assert_isinstance(IntegerArray([10]).remainder(FloatArray([2, 3])), Error)
+        assert_isinstance(FloatArray([10]).remainder(FloatArray([2, 3])), Error)
+        assert_isinstance(MixedArray(Integer(10)).remainder(FloatArray([2, 3])), Error)
+
 class MatchTests(TestCase):
     def test_match_integer_integer(self):
         assert_equal(Integer(10).match(Integer(10)), Integer(1))
@@ -989,14 +1199,69 @@ class MatchTests(TestCase):
     def test_match_integer_mixed_array(self):
         assert_equal(Integer(10).match(MixedArray([Integer(2), Integer(3)])), Integer(0))
 
+    def test_match_float_integer(self):
+        assert_equal(Float(10).match(Integer(10)), Integer(1))
+
+    def test_match_float_float(self):
+        assert_equal(Float(10).match(Float(10)), Integer(1))
+
+    def test_match_float_integer_array(self):
+        assert_equal(Float(10).match(IntegerArray([2, 3])), Integer(0))
+
+    def test_match_float_float_array(self):
+        assert_equal(Float(10).match(FloatArray([2, 3])), Integer(0))
+
+    def test_match_float_mixed_array(self):
+        assert_equal(Float(10).match(MixedArray([Integer(2), Integer(3)])), Integer(0))
+
     def test_match_integer_array_integer(self):
         assert_equal(IntegerArray([1, 2, 3]).match(Integer(2)), Integer(0))
+        assert_equal(IntegerArray([]).match(IntegerArray([])), Integer(1))
+        assert_equal(IntegerArray([]).match(FloatArray([])), Integer(1))
+        assert_equal(IntegerArray([]).match(MixedArray([])), Integer(1))
+        assert_equal(IntegerArray([]).match(IntegerArray([1])), Integer(0))
+        assert_equal(IntegerArray([1]).match(IntegerArray([])), Integer(0))
+        assert_equal(IntegerArray([]).match(FloatArray([1])), Integer(0))
+        assert_equal(IntegerArray([1]).match(FloatArray([])), Integer(0))
+        assert_equal(IntegerArray([]).match(MixedArray([Integer(1)])), Integer(0))
+        assert_equal(IntegerArray([1]).match(MixedArray([])), Integer(0))
+
+    def test_match_integer_array_float(self):
+        assert_equal(IntegerArray([2, 3]).match(Float(2)), Integer(0))
 
     def test_match_integer_array_integer_array(self):
         assert_equal(IntegerArray([2, 3]).match(IntegerArray([2, 3])), Integer(1))
 
+    def test_match_integer_array_float_array(self):
+        assert_equal(IntegerArray([2, 3]).match(FloatArray([2, 3])), Integer(1))
+
     def test_match_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).match(MixedArray([Integer(2), Integer(3)])), Integer(1))
+
+    def test_match_float_array_integer(self):
+        assert_equal(FloatArray([1, 2, 3]).match(Integer(2)), Integer(0))
+
+    def test_match_float_array_float(self):
+        assert_equal(FloatArray([1, 2, 3]).match(Float(2)), Integer(0))
+
+    def test_match_float_array_integer_array(self):
+        assert_equal(FloatArray([2, 3]).match(IntegerArray([2, 3])), Integer(1))
+        assert_equal(FloatArray([2, 3]).match(IntegerArray([4, 5])), Integer(0))
+
+    def test_match_float_array_float_array(self):
+        assert_equal(FloatArray([2, 3]).match(FloatArray([2, 3])), Integer(1))
+        assert_equal(FloatArray([]).match(IntegerArray([])), Integer(1))
+        assert_equal(FloatArray([]).match(FloatArray([])), Integer(1))
+        assert_equal(FloatArray([]).match(MixedArray([])), Integer(1))
+        assert_equal(FloatArray([]).match(IntegerArray([1])), Integer(0))
+        assert_equal(FloatArray([1]).match(IntegerArray([])), Integer(0))
+        assert_equal(FloatArray([]).match(FloatArray([1])), Integer(0))
+        assert_equal(FloatArray([1]).match(FloatArray([])), Integer(0))
+        assert_equal(FloatArray([]).match(MixedArray([Integer(1)])), Integer(0))
+        assert_equal(FloatArray([1]).match(MixedArray([])), Integer(0))
+
+    def test_match_float_array_mixed_array(self):
+        assert_equal(FloatArray([2, 3]).match(MixedArray([Integer(2), Integer(3)])), Integer(1))
 
     def test_match_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).match(Integer(2)), Integer(0))
@@ -1006,6 +1271,11 @@ class MatchTests(TestCase):
 
     def test_match_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).match(MixedArray([Float(1), Integer(2), Float(3)])), Integer(1))
+        assert_equal(MixedArray([]).match(IntegerArray([])), Integer(1))
+        assert_equal(MixedArray([]).match(FloatArray([])), Integer(1))
+        assert_equal(MixedArray([]).match(MixedArray([])), Integer(1))
+        assert_equal(MixedArray([]).match(IntegerArray([1])), Integer(0))
+        assert_equal(MixedArray([1]).match(IntegerArray([])), Integer(0))
 
 class MaxTests(TestCase):
     def test_max_integer_integer(self):
@@ -1136,16 +1406,22 @@ class MinTests(TestCase):
         assert_equal(IntegerArray([2, 3]).min(IntegerArray([1, 1])), IntegerArray([1, 1]))
         assert_equal(IntegerArray([2, 3]).min(IntegerArray([4, 4])), IntegerArray([2, 3]))
         assert_isinstance(IntegerArray([2, 3]).min(IntegerArray([4, 4, 4])), Error)
+        assert_isinstance(IntegerArray([2, 3]).min(IntegerArray([])), Error)
+        assert_isinstance(IntegerArray([]).min(IntegerArray([4, 4, 4])), Error)
 
     def test_min_integer_array_float_array(self):
         assert_equal(IntegerArray([2, 3]).min(FloatArray([1, 1])), FloatArray([1, 1]))
         assert_equal(IntegerArray([2, 3]).min(FloatArray([4, 4])), FloatArray([2, 3]))
         assert_isinstance(IntegerArray([2, 3]).min(FloatArray([4, 4, 4])), Error)
+        assert_isinstance(IntegerArray([]).min(FloatArray([4, 4, 4])), Error)
+        assert_isinstance(IntegerArray([2, 3]).min(FloatArray([])), Error)
 
     def test_min_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).min(MixedArray([Integer(1), Float(1)])), MixedArray([Float(1), Float(1)]))
         assert_equal(IntegerArray([2, 3]).min(MixedArray([Integer(4), Float(4)])), MixedArray([Float(2), Float(3)]))
         assert_isinstance(IntegerArray([2, 3]).min(MixedArray([Integer(4), Integer(4), Integer(4)])), Error)
+        assert_isinstance(IntegerArray([2, 3]).min(MixedArray([])), Error)
+        assert_isinstance(IntegerArray([]).min(MixedArray([Integer(4), Integer(4), Integer(4)])), Error)
 
     def test_min_float_array_integer(self):
         assert_equal(FloatArray([2, 3]).min(Integer(1)), FloatArray([1, 1]))
@@ -1159,16 +1435,23 @@ class MinTests(TestCase):
         assert_equal(FloatArray([2, 3]).min(IntegerArray([1, 1])), FloatArray([1, 1]))
         assert_equal(FloatArray([2, 3]).min(IntegerArray([4, 4])), FloatArray([2, 3]))
         assert_isinstance(FloatArray([2, 3]).min(IntegerArray([4, 4, 4])), Error)
+        assert_isinstance(FloatArray([2, 3]).min(IntegerArray([])), Error)
+        assert_isinstance(IntegerArray([2, 3]).min(IntegerArray([])), Error)
+        assert_isinstance(IntegerArray([]).min(IntegerArray([2, 3])), Error)
 
     def test_min_float_array_float_array(self):
         assert_equal(FloatArray([2, 3]).min(FloatArray([1, 1])), FloatArray([1, 1]))
         assert_equal(FloatArray([2, 3]).min(FloatArray([4, 4])), FloatArray([2, 3]))
         assert_isinstance(FloatArray([2, 3]).min(FloatArray([4, 4, 4])), Error)
+        assert_isinstance(FloatArray([2, 3]).min(FloatArray([])), Error)
+        assert_isinstance(FloatArray([]).min(FloatArray([2, 3])), Error)
 
     def test_min_float_array_mixed_array(self):
         assert_equal(FloatArray([2, 3]).min(MixedArray([Integer(1), Float(1)])), MixedArray([Float(1), Float(1)]))
         assert_equal(FloatArray([2, 3]).min(MixedArray([Integer(4), Float(4)])), MixedArray([Float(2), Float(3)]))
         assert_isinstance(FloatArray([2, 3]).min(MixedArray([Integer(4), Integer(4), Integer(4)])), Error)
+        assert_isinstance(MixedArray([2, 3]).min(MixedArray([])), Error)
+        assert_isinstance(MixedArray([]).min(MixedArray([2, 3])), Error)
 
     def test_min_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).min(Integer(1)), MixedArray([Integer(1), Float(1)]))
@@ -1182,16 +1465,22 @@ class MinTests(TestCase):
         assert_equal(MixedArray([Integer(2), Float(3)]).min(IntegerArray([1, 1])), MixedArray([Integer(1), Float(1)]))
         assert_equal(MixedArray([Integer(2), Float(3)]).min(IntegerArray([4, 4])), MixedArray([Integer(2), Float(3)]))
         assert_isinstance(MixedArray([Integer(2), Integer(3)]).min(IntegerArray([4, 4, 4])), Error)
+        assert_isinstance(MixedArray([Integer(2), Integer(3)]).min(IntegerArray([])), Error)
+        assert_isinstance(MixedArray([]).min(IntegerArray([4, 4, 4])), Error)
 
     def test_min_mixed_array_float_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).min(FloatArray([1, 1])), MixedArray([Float(1), Float(1)]))
         assert_equal(MixedArray([Integer(2), Float(3)]).min(FloatArray([4, 4])), MixedArray([Float(2), Float(3)]))
         assert_isinstance(MixedArray([Integer(2), Integer(3)]).min(FloatArray([4, 4, 4])), Error)
+        assert_isinstance(MixedArray([Integer(2), Integer(3)]).min(FloatArray([])), Error)
+        assert_isinstance(MixedArray([]).min(FloatArray([4, 4, 4])), Error)
 
     def test_min_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).min(MixedArray([Integer(1), Float(1)])), MixedArray([Float(1), Float(1)]))
         assert_equal(MixedArray([Integer(2), Float(3)]).min(MixedArray([Integer(4), Float(4)])), MixedArray([Float(2), Float(3)]))
         assert_isinstance(MixedArray([Integer(2), Integer(3)]).min(MixedArray([Integer(4), Integer(4), Integer(4)])), Error)
+        assert_isinstance(MixedArray([Integer(2), Integer(3)]).min(MixedArray([])), Error)
+        assert_isinstance(MixedArray([]).min(MixedArray([Integer(4), Integer(4), Integer(4)])), Error)
 
 class LessTests(TestCase):
     def test_less_integer_integer(self):
@@ -1438,6 +1727,21 @@ class IndexTests(TestCase):
     def test_index_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).index(MixedArray([Integer(1), Float(1.0)])), IntegerArray([2, 3]))
 
+    def test_index_float_array_integer(self):
+        assert_equal(FloatArray([2, 3]).index(Integer(1)), Float(2))
+
+    def test_index_float_array_float(self):
+        assert_equal(FloatArray([2, 3]).index(Float(0.5)), Float(2))
+
+    def test_index_float_array_integer_array(self):
+        assert_equal(FloatArray([2, 3]).index(IntegerArray([1, 2])), FloatArray([2, 3]))
+
+    def test_index_float_array_float_array(self):
+        assert_equal(FloatArray([2, 3]).index(FloatArray([0.5, 1.0])), FloatArray([2, 3]))
+
+    def test_index_float_array_mixed_array(self):
+        assert_equal(FloatArray([2, 3]).index(MixedArray([Integer(1), Float(1.0)])), FloatArray([2, 3]))
+
     def test_index_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).index(Integer(1)), Integer(2))
 
@@ -1468,18 +1772,39 @@ class CutTests(TestCase):
 
     def test_cut_integer_array_integer_array(self):
         assert_equal(IntegerArray([2, 3]).cut(IntegerArray([1, 2])), MixedArray([IntegerArray([2])]))
+        assert_equal(IntegerArray([2, 3]).cut(IntegerArray([])), IntegerArray([2, 3]))
+        assert_equal(IntegerArray([]).cut(IntegerArray([1, 2])), MixedArray([IntegerArray([])]))
+
+    def test_cut_integer_array_float_array(self):
+        assert_equal(IntegerArray([2, 3]).cut(FloatArray([0.5, 1.0])), MixedArray([IntegerArray([2]), IntegerArray([3]), IntegerArray([])]))
+        assert_equal(IntegerArray([2, 3]).cut(FloatArray([])), MixedArray([IntegerArray([2, 3])]))
 
     def test_cut_integer_array_mixed_array(self):
         assert_equal(IntegerArray([2, 3]).cut(MixedArray([Integer(1), Integer(2)])), MixedArray([IntegerArray([3])]))
+        assert_equal(IntegerArray([2, 3]).cut(MixedArray([])), IntegerArray([2, 3]))
+
+    def test_cut_float_array_integer(self):
+        assert_equal(FloatArray([2, 3]).cut(Integer(1)), FloatArray([3]))
+
+    def test_cut_float_array_integer_array(self):
+        assert_equal(FloatArray([2, 3]).cut(IntegerArray([1, 2])), MixedArray([IntegerArray([]), IntegerArray([2]), IntegerArray([3])]))
+        assert_equal(FloatArray([2, 3]).cut(IntegerArray([])), MixedArray([FloatArray([2, 3])]))
+
+    def test_cut_float_array_mixed_array(self):
+        assert_equal(FloatArray([2, 3]).cut(MixedArray([Integer(1), Integer(2)])), MixedArray([FloatArray([3])]))
 
     def test_cut_mixed_array_integer(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).cut(Integer(1)), MixedArray([Float(3)]))
 
     def test_cut_mixed_array_integer_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).cut(IntegerArray([1, 2])), MixedArray([MixedArray([]), MixedArray([Integer(2)]), MixedArray([Float(3)])]))
+        assert_equal(MixedArray([Integer(2), Float(3)]).cut(IntegerArray([])), MixedArray([MixedArray([Integer(2), Float(3)])]))
 
     def test_cut_mixed_array_mixed_array(self):
         assert_equal(MixedArray([Integer(2), Float(3)]).cut(MixedArray([Integer(1), Integer(2)])), MixedArray([MixedArray([]), MixedArray([Integer(2)]), MixedArray([Float(3)])]))
+
+    def test_cut_errors(self):
+        assert_isinstance(IntegerArray([1, 2, 3]).cut(Float(1)), Error)
 
 class GradeUpTests(TestCase):
     def test_gradeUp_integer_array(self):
@@ -1663,11 +1988,15 @@ class SerializationTests(TestCase):
 
 class AdverbTests(TestCase):
     def test_each(self):
+        assert_equal(Integer(1).each(Integer(StorageMonads.negate.value)), Integer(-1))
+        assert_equal(Float(1).each(Integer(StorageMonads.negate.value)), Float(-1))
         assert_equal(IntegerArray([1, 2, 3]).each(Integer(StorageMonads.negate.value)), MixedArray([Integer(-1), Integer(-2), Integer(-3)]))
         assert_equal(FloatArray([1, 2, 3]).each(Integer(StorageMonads.negate.value)), MixedArray([Float(-1), Float(-2), Float(-3)]))
         assert_equal(MixedArray([Integer(1), Integer(2), Integer(3)]).each(Integer(StorageMonads.negate.value)), MixedArray([Integer(-1), Integer(-2), Integer(-3)]))
 
     def test_each2(self):
+        assert_equal(Integer(1).each2(Integer(StorageDyads.plus.value), Integer(1)), Integer(2))
+        assert_equal(Float(1).each2(Integer(StorageDyads.plus.value), Float(1)), Float(2))
         assert_equal(IntegerArray([1, 2, 3]).each2(Integer(StorageDyads.plus.value), Integer(4)), MixedArray([Integer(5), Integer(6), Integer(7)]))
         assert_equal(IntegerArray([1, 2, 3]).each2(Integer(StorageDyads.plus.value), Float(4)), MixedArray([Float(5), Float(6), Float(7)]))
         assert_equal(IntegerArray([1, 2, 3]).each2(Integer(StorageDyads.plus.value), IntegerArray([4, 5, 6])), MixedArray([Integer(5), Integer(7), Integer(9)]))
@@ -1699,9 +2028,12 @@ class AdverbTests(TestCase):
         assert_equal(Float(1).eachLeft(Integer(StorageDyads.plus.value), FloatArray([4, 5, 6])), MixedArray([Float(5), Float(6), Float(7)]))
         assert_equal(Float(1).eachLeft(Integer(StorageDyads.plus.value), MixedArray([Integer(4), Integer(5), Integer(6)])), MixedArray([Float(5), Float(6), Float(7)]))
 
+        assert_equal(IntegerArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), Integer(4)), IntegerArray([5, 6, 7]))
+        assert_equal(IntegerArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), Float(4)), FloatArray([5, 6, 7]))
         assert_equal(IntegerArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), IntegerArray([4, 5, 6])), MixedArray([IntegerArray([5, 6, 7]), IntegerArray([6, 7, 8]), IntegerArray([7, 8, 9])]))
         assert_equal(IntegerArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), FloatArray([4, 5, 6])), MixedArray([FloatArray([5, 6, 7]), FloatArray([6, 7, 8]), FloatArray([7, 8, 9])]))
         assert_equal(IntegerArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), FloatArray([4, 5, 6])), MixedArray([FloatArray([5, 6, 7]), FloatArray([6, 7, 8]), FloatArray([7, 8, 9])]))
+        assert_equal(IntegerArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), MixedArray([Integer(4), Float(5), Integer(6)])), MixedArray([IntegerArray([5, 6, 7]), FloatArray([6, 7, 8]),IntegerArray([7, 8, 9])]))
 
         assert_equal(FloatArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), Integer(4)), FloatArray([5, 6, 7]))
         assert_equal(FloatArray([1, 2, 3]).eachLeft(Integer(StorageDyads.plus.value), Float(4)), FloatArray([5, 6, 7]))
@@ -1728,9 +2060,12 @@ class AdverbTests(TestCase):
         assert_equal(Float(1).eachRight(Integer(StorageDyads.plus.value), FloatArray([4, 5, 6])), FloatArray([5, 6, 7]))
         assert_equal(Float(1).eachRight(Integer(StorageDyads.plus.value), MixedArray([Integer(4), Integer(5), Integer(6)])), MixedArray([Float(5), Float(6), Float(7)]))
 
+        assert_equal(IntegerArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), Integer(4)), IntegerArray([5, 6, 7]))
+        assert_equal(IntegerArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), Float(4)), FloatArray([5, 6, 7]))
         assert_equal(IntegerArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), IntegerArray([4, 5, 6])), MixedArray([IntegerArray([5, 6, 7]), IntegerArray([6, 7, 8]), IntegerArray([7, 8, 9])]))
         assert_equal(IntegerArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), FloatArray([4, 5, 6])), MixedArray([FloatArray([5, 6, 7]), FloatArray([6, 7, 8]), FloatArray([7, 8, 9])]))
         assert_equal(IntegerArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), FloatArray([4, 5, 6])), MixedArray([FloatArray([5, 6, 7]), FloatArray([6, 7, 8]), FloatArray([7, 8, 9])]))
+        assert_equal(IntegerArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), MixedArray([Integer(4), Float(5), Integer(6)])), MixedArray([IntegerArray([5, 6, 7]), FloatArray([6, 7, 8]), IntegerArray([7, 8, 9])]))
 
         assert_equal(FloatArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), Integer(4)), FloatArray([5, 6, 7]))
         assert_equal(FloatArray([1, 2, 3]).eachRight(Integer(StorageDyads.plus.value), Float(4)), FloatArray([5, 6, 7]))
@@ -1806,21 +2141,52 @@ class AdverbTests(TestCase):
         assert_equal(Integer(0).whileOne(Integer(StorageMonads.atom.value), Integer(StorageMonads.enclose.value)), IntegerArray([0]))
 
     def test_iterate(self):
+        assert_equal(Integer(2).iterate(Integer(StorageMonads.shape.value), IntegerArray([1, 2, 3])), Integer(0))
         assert_equal(IntegerArray([1, 2, 3]).iterate(Integer(StorageMonads.shape.value), Integer(2)), IntegerArray([1]))
         assert_equal(FloatArray([1, 2, 3]).iterate(Integer(StorageMonads.shape.value), Integer(2)), IntegerArray([1]))
         assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).iterate(Integer(StorageMonads.shape.value), Integer(2)), IntegerArray([1]))
 
+        assert_isinstance(Integer(-2).iterate(Integer(StorageMonads.shape.value), IntegerArray([1, 2, 3])), Error)
+        assert_isinstance(Float(2).iterate(Integer(StorageMonads.shape.value), IntegerArray([1, 2, 3])), Error)
+
     def test_scanOver(self):
+        assert_equal(Integer(1).scanOver(Integer(StorageMonads.shape.value)), IntegerArray([1]))
+
         assert_equal(IntegerArray([1, 2, 3]).scanOver(Integer(StorageDyads.plus.value)), MixedArray([Integer(1), Integer(3), Integer(6)]))
+        assert_equal(IntegerArray([]).scanOver(Integer(StorageDyads.plus.value)), IntegerArray([]))
+
+        assert_equal(FloatArray([1, 2, 3]).scanOver(Integer(StorageDyads.plus.value)), MixedArray([Float(1), Float(3), Float(6)]))
+        assert_equal(FloatArray([]).scanOver(Integer(StorageDyads.plus.value)), FloatArray([]))
+
+        assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).scanOver(Integer(StorageDyads.plus.value)), MixedArray([Integer(1), Float(3), Float(6)]))
+        assert_equal(MixedArray([]).scanOver(Integer(StorageDyads.plus.value)), MixedArray([]))
 
     def test_scanOverNeutral(self):
+        assert_equal(Integer(1).scanOverNeutral(Integer(StorageDyads.plus.value), Integer(1)), MixedArray([Integer(1), Integer(2)]))
+        assert_equal(IntegerArray([1, 2, 3]).scanOverNeutral(Integer(StorageDyads.plus.value), Integer(1)), MixedArray([Integer(1), Integer(2), Integer(4), Integer(7)]))
+        assert_equal(FloatArray([1, 2, 3]).scanOverNeutral(Integer(StorageDyads.plus.value), Integer(1)), MixedArray([Integer(1), Float(2), Float(4), Float(7)]))
+        assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).scanOverNeutral(Integer(StorageDyads.plus.value), Integer(1)), MixedArray([Integer(1), Integer(2), Float(4), Float(7)]))
+
+    def test_scanConverging(self):
         assert_equal(IntegerArray([1, 2, 3]).scanConverging(Integer(StorageMonads.shape.value)), MixedArray([IntegerArray([1, 2, 3]), IntegerArray([3]), IntegerArray([1])]))
+        assert_equal(FloatArray([1, 2, 3]).scanConverging(Integer(StorageMonads.shape.value)), MixedArray([FloatArray([1, 2, 3]), IntegerArray([3]), IntegerArray([1])]))
+        assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).scanConverging(Integer(StorageMonads.shape.value)), MixedArray([MixedArray([Integer(1), Float(2), Integer(3)]), IntegerArray([3]), IntegerArray([1])]))
 
     def test_scanWhileOne(self):
         assert_equal(Integer(0).scanWhileOne(Integer(StorageMonads.atom.value), Integer(StorageMonads.enclose.value)), MixedArray([Integer(0), IntegerArray([0])]))
 
     def test_scanIterating(self):
         assert_equal(IntegerArray([1, 2, 3]).scanIterating(Integer(StorageMonads.shape.value), Integer(2)), MixedArray([IntegerArray([1, 2, 3]), IntegerArray([3]), IntegerArray([1])]))
+        assert_isinstance(IntegerArray([1, 2, 3]).scanIterating(Integer(StorageMonads.shape.value), Integer(-2)), Error)
+        assert_isinstance(IntegerArray([1, 2, 3]).scanIterating(Integer(StorageMonads.shape.value), Float(2)), Error)
+
+        assert_equal(FloatArray([1, 2, 3]).scanIterating(Integer(StorageMonads.shape.value), Integer(2)), MixedArray([FloatArray([1, 2, 3]), IntegerArray([3]), IntegerArray([1])]))
+        assert_isinstance(FloatArray([1, 2, 3]).scanIterating(Integer(StorageMonads.shape.value), Integer(-2)), Error)
+        assert_isinstance(FloatArray([1, 2, 3]).scanIterating(Integer(StorageMonads.shape.value), Float(2)), Error)
+
+        assert_equal(MixedArray([Integer(1), Float(2), Integer(3)]).scanIterating(Integer(StorageMonads.shape.value), Integer(2)), MixedArray([MixedArray([Integer(1), Float(2), Integer(3)]), IntegerArray([3]), IntegerArray([1])]))
+        assert_isinstance(MixedArray([Integer(1), Float(2), Integer(3)]).scanIterating(Integer(StorageMonads.shape.value), Integer(-2)), Error)
+        assert_isinstance(MixedArray([Integer(1), Float(2), Integer(3)]).scanIterating(Integer(StorageMonads.shape.value), Float(2)), Error)
 
 if __name__ == "__main__":
     # Run tests when executed
