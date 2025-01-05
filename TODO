@@ -1,2 +1,9 @@
 Modify take, drop, and rotate to accept numbers larger than the length of the array
 Modify take, drop, and rotate to accept percentages as floats
+
+Add index-in-depth
+Add integer-divide
+Add reshape
+
+Reimplement dictionary and re-add group and amend
+Implement amend-at-depth

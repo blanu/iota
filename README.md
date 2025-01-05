@@ -15,7 +15,7 @@ If you are looking for a more practical implementation of klong, check out Klong
 ## Motivation
 
 iota is an experiment to explore several ideas:
-* a small, but very portable language
+* a small, but very portable language [Portability.md]
 * a single, unified storage type
 * unifying Smalltalk and APL design concepts
 * word-sized integers and word-sized floating point numbers for all computations
