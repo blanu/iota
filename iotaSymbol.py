@@ -10,4 +10,4 @@ class MetaSymbol(MetaNoun, type):
 class Symbol(Noun, metaclass=MetaSymbol):
     @staticmethod
     def new(x):
-        return Word(x, NounType.SYMBOL)
+        return Word(x, NounType.USER_SYMBOL)

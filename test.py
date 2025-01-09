@@ -2039,8 +2039,8 @@ class AdverbTests(TestCase):
     def test_eachLeft(self):
         assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), Word(4)), Word(5))
         assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), Float(4)), Float(5))
-        assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), WordArray([4, 5, 6])), WordArray([5, 6, 7]))
-        assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), FloatArray([4, 5, 6])), FloatArray([5, 6, 7]))
+        assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), WordArray([4, 5, 6])), MixedArray([Word(5), Word(6), Word(7)]))
+        assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), FloatArray([4, 5, 6])), MixedArray([Float(5), Float(6), Float(7)]))
         assert_equal(Word(1).eachLeft(Dyads.plus.symbol(), MixedArray([Word(4), Word(5), Word(6)])), MixedArray([Word(5), Word(6), Word(7)]))
 
         assert_equal(Float(1).eachLeft(Dyads.plus.symbol(), Word(4)), Float(5))
@@ -2071,14 +2071,14 @@ class AdverbTests(TestCase):
     def test_eachRight(self):
         assert_equal(Word(1).eachRight(Dyads.plus.symbol(), Word(4)), Word(5))
         assert_equal(Word(1).eachRight(Dyads.plus.symbol(), Float(4)), Float(5))
-        assert_equal(Word(1).eachRight(Dyads.plus.symbol(), WordArray([4, 5, 6])), WordArray([5, 6, 7]))
-        assert_equal(Word(1).eachRight(Dyads.plus.symbol(), FloatArray([4, 5, 6])), FloatArray([5, 6, 7]))
+        assert_equal(Word(1).eachRight(Dyads.plus.symbol(), WordArray([4, 5, 6])), MixedArray([Word(5), Word(6), Word(7)]))
+        assert_equal(Word(1).eachRight(Dyads.plus.symbol(), FloatArray([4, 5, 6])), MixedArray([Float(5), Float(6), Float(7)]))
         assert_equal(Word(1).eachRight(Dyads.plus.symbol(), MixedArray([Word(4), Word(5), Word(6)])), MixedArray([Word(5), Word(6), Word(7)]))
 
         assert_equal(Float(1).eachRight(Dyads.plus.symbol(), Word(4)), Float(5))
         assert_equal(Float(1).eachRight(Dyads.plus.symbol(), Float(4)), Float(5))
-        assert_equal(Float(1).eachRight(Dyads.plus.symbol(), WordArray([4, 5, 6])), FloatArray([5, 6, 7]))
-        assert_equal(Float(1).eachRight(Dyads.plus.symbol(), FloatArray([4, 5, 6])), FloatArray([5, 6, 7]))
+        assert_equal(Float(1).eachRight(Dyads.plus.symbol(), WordArray([4, 5, 6])), MixedArray([Float(5), Float(6), Float(7)]))
+        assert_equal(Float(1).eachRight(Dyads.plus.symbol(), FloatArray([4, 5, 6])), MixedArray([Float(5), Float(6), Float(7)]))
         assert_equal(Float(1).eachRight(Dyads.plus.symbol(), MixedArray([Word(4), Word(5), Word(6)])), MixedArray([Float(5), Float(6), Float(7)]))
 
         assert_equal(WordArray([1, 2, 3]).eachRight(Dyads.plus.symbol(), Word(4)), WordArray([5, 6, 7]))
@@ -2194,7 +2194,7 @@ class AdverbTests(TestCase):
         assert_equal(MixedArray([Word(1), Float(2), Word(3)]).scanConverging(Monads.shape.symbol()), MixedArray([MixedArray([Word(1), Float(2), Word(3)]), WordArray([3]), WordArray([1])]))
 
     def test_scanWhileOne(self):
-        assert_equal(Word(0).scanWhileOne(Monads.atom.symbol(), Monads.enclose.symbol()), MixedArray([Word(0), WordArray([0])]))
+        assert_equal(Word(0).scanWhileOne(Monads.atom.symbol(), Monads.enclose.symbol()), WordArray([0]))
 
     def test_scanIterating(self):
         assert_equal(WordArray([1, 2, 3]).scanIterating(Monads.shape.symbol(), Word(2)), MixedArray([WordArray([1, 2, 3]), WordArray([3]), WordArray([1])]))

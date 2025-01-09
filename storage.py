@@ -1,5 +1,4 @@
 import struct
-from abc import abstractmethod
 from enum import Enum
 import math
 
@@ -9,25 +8,27 @@ import error
 
 class Monads(Enum):
     atom = 0
-    complementation = 1
-    enclose = 2
-    enumerate = 3
-    first = 4
-    floor = 5
-    gradeDown = 6
-    gradeUp = 7
-    group = 8
-    negate = 9
-    reciprocal = 11
-    reverse = 12
-    shape = 13
-    size = 14
-    transpose = 15
-    unique = 16
-    count = 17
+    char = 1
+    complementation = 2
+    enclose = 3
+    enumerate = 4
+    first = 6
+    floor = 7
+    format = 19
+    gradeDown = 8
+    gradeUp = 9
+    group = 10
+    negate = 11
+    reciprocal = 12
+    reverse = 13
+    shape = 14
+    size = 15
+    transpose = 16
+    unique = 17
+    count = 18
 
     def symbol(self):
-        return Word(self.value)
+        return Word(self.value, o=NounType.BUILTIN_MONAD)
 
 class Dyads(Enum):
     amend = 117
@@ -37,7 +38,11 @@ class Dyads(Enum):
     equal = 121
     expand = 122
     find = 123
+    form = 141
+    format2 = 142
     index = 124
+    indexInDepth = 143
+    integerDivide = 144
     join = 125
     less = 126
     match = 127
@@ -55,7 +60,7 @@ class Dyads(Enum):
     times = 140
 
     def symbol(self):
-        return Word(self.value)
+        return Word(self.value, o=NounType.BUILTIN_DYAD)
 
 class Adverbs(Enum):
     each = 41
@@ -75,7 +80,7 @@ class Adverbs(Enum):
     scanIterating = 55
 
     def symbol(self):
-        return Word(self.value)
+        return Word(self.value, o=NounType.ADVERB)
 
 class StorageType(Enum):
     WORD = 0
@@ -91,23 +96,28 @@ class NounType(Enum):
     STRING = 13
     LIST = 14
     DICTIONARY = 15
-    SYMBOL = 16
+    BUILTIN_SYMBOL = 16
     BUILTIN_MONAD = 17
     BUILTIN_DYAD = 18
     BUILTIN_TRIAD = 19
-    BUILTIN_ADVERB = 20
+    ADVERB = 20
+    USER_SYMBOL = 27
     USER_MONAD = 21
     USER_DYAD = 22
     USER_TRIAD = 23
-    ADVERB = 24
-    ERROR = 25
+    USER_NILAD = 24
+    ERROR = 26
 
-class Symbol(Enum):
-    i = 0
-    x = 1
-    y = 2
-    z = 3
-    f = 4
+class SymbolType(Enum):
+    i = 200
+    x = 201
+    y = 202
+    z = 203
+    f = 204
+    undefined = 205
+
+    def symbol(self):
+        return Word(self.value, o=NounType.BUILTIN_SYMBOL)
 
 class Storage:
     @staticmethod
@@ -140,6 +150,111 @@ class Storage:
     def identity(i, *discard):
         return i
 
+    # Monads
+
+    @staticmethod
+    def atom_list(i):
+        if len(i.i) == 0:
+            return Word.true()
+        else:
+            return Word.false()
+
+    # char: delegated to subclass
+
+    def complementation_impl(self):
+        return Word(1).minus(self)
+
+    # enclose word, float: delegated to subclass
+    @staticmethod
+    def enclose_impl(i):
+        return MixedArray([i])
+
+    # enumerate: delegated to subclass
+
+    # expand: delegated to subclass
+
+    # first: delegated to subclass
+
+    # floor: delegated to subclass
+
+    # format: delegated to subclass
+
+    # gradeDown: delegated to subclass
+
+    # gradeUp: delegated to subclass
+
+    # group: delegated to subclass
+
+    def negate_impl(self):
+        return Word(0).minus(self)
+
+    def reciprocal_impl(self):
+        return Float(1).divide(self)
+
+    # reverse: delegated to subclass
+
+    # shape: delegated to subclass
+
+    # size: delegated to subclass
+
+    # transpose: delegated to subclass
+
+    # unique: delegated to subclass
+
+    # Dyads
+
+    # amend: delegated to subclass
+
+    # cut: delegated to subclass
+
+    # divide: delegated to subclass
+
+    # drop: delegated to subclass
+
+    # equal: delegated to subclass
+
+    # find: delegated to subclass
+
+    # form:: delegated to subclass
+
+    # format2: delegated to subclass
+
+    # index: delegated to subclass
+
+    # indexInDepth: delegated to subclass
+
+    # integerDivide: delegated to subclass
+
+    # join: delegated to subclass
+
+    # less: delegated to subclass
+
+    # match: delegated to subclass
+
+    # max: delegated to subclass
+
+    # min: delegated to subclass
+
+    # minus: delegated to subclass
+
+    # more: delegated to subclass
+
+    # plus: delegated to subclass
+
+    # power: delegated to subclass
+
+    # reshape: delegated to subclass
+
+    # remainder: delegated to subclass
+
+    # rotate: delegated to subclass
+
+    # split: delegated to subclass
+
+    # take: delegated to subclass
+
+    # times: delegated to subclass
+
     # Monadic adverbs
 
     @staticmethod
@@ -159,7 +274,9 @@ class Storage:
                 return nextValue
         return current
 
-    # each delegated to subclass
+    @staticmethod
+    def each_scalar(i, f):
+        return Noun.dispatchMonad(i, f)
 
     # eachPair delegated to subclass
 
@@ -180,13 +297,35 @@ class Storage:
 
     # Dyadic adverbs
 
-    # each2 delegated to subclass
+    def each2_scalar(self, f, x):
+        return Noun.dispatchDyad(self, f, x)
 
-    # eachLeft delegated to subclass
+    def eachLeft_scalar(self, f, x):
+        return Noun.dispatchDyad(self, f, x)
 
-    # eachRight delegated to subclass
+    def eachLeft_words(self, f, x):
+        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
 
-    # overNeutral delegated to subclass
+    def eachLeft_floats(self, f, x):
+        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
+
+    def eachLeft_mixed(self, f, x):
+        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
+
+    def eachRight_scalar(self, f, x):
+        return Noun.dispatchDyad(x, f, self)
+
+    def eachRight_words(self, f, x):
+        return MixedArray([Noun.dispatchDyad(Word(y), f, self) for y in x.i])
+
+    def eachRight_floats(self, f, x):
+        return MixedArray([Noun.dispatchDyad(Float(y), f, self) for y in x.i])
+
+    def eachRight_mixed(self, f, x):
+        return MixedArray([Noun.dispatchDyad(y, f, self) for y in x.i])
+
+    def overNeutral_scalar(self, f, x):
+        return Noun.dispatchDyad(self, f, x)
 
     @staticmethod
     def iterate_word(i, f, x):
@@ -215,7 +354,9 @@ class Storage:
 
     # scanIterating: float, words, floats, mixed - unsupported
 
-    # scanOverNeutral delegated to subclass
+    def scanOverNeutral_scalar(self, f, x):
+        return MixedArray([self, Noun.dispatchDyad(self, f, x)])
+    # scanOverNeutral words, floats, mixed: delegated to subclass
 
     @staticmethod
     def scanWhileOne_impl(i, f, x):
@@ -251,27 +392,12 @@ class Storage:
     def __hash__(self):
         return hash(self.i)
 
-    def negate_impl(self):
-        return Word(0).minus(self)
-
-    def reciprocal_impl(self):
-        return Float(1).divide(self)
-
-    def complementation_impl(self):
-        return Word(1).minus(self)
-
-    # Monads
-    @abstractmethod
-    def monad(self, rop, op):
-        pass
-
-    @abstractmethod
-    def dyad(self, x, rop, op):
-        pass
-
     # Monads
     def atom(self):
         return Noun.dispatchMonad(self, Monads.atom.symbol())
+
+    def char(self):
+        return Noun.dispatchMonad(self, Monads.char.symbol())
 
     def complementation(self):
         return Noun.dispatchMonad(self, Monads.complementation.symbol())
@@ -287,6 +413,9 @@ class Storage:
 
     def floor(self):
         return Noun.dispatchMonad(self, Monads.floor.symbol())
+
+    def format(self):
+        return Noun.dispatchMonad(self, Monads.format.symbol())
 
     def gradeDown(self):
         return Noun.dispatchMonad(self, Monads.gradeDown.symbol())
@@ -340,8 +469,20 @@ class Storage:
     def find(self, x):
         return Noun.dispatchDyad(self, Dyads.find.symbol(), x)
 
+    def form(self, x):
+        return Noun.dispatchDyad(self, Dyads.form.symbol(), x)
+
+    def format2(self, x):
+        return Noun.dispatchDyad(self, Dyads.format2.symbol(), x)
+
     def index(self, x):
         return Noun.dispatchDyad(self, Dyads.index.symbol(), x)
+
+    def indexInDepth(self, x):
+        return Noun.dispatchDyad(self, Dyads.indexInDepth.symbol(), x)
+
+    def integerDivide(self, x):
+        return Noun.dispatchDyad(self, Dyads.integerDivide.symbol(), x)
 
     def join(self, x):
         return Noun.dispatchDyad(self, Dyads.join.symbol(), x)
@@ -484,24 +625,11 @@ class Word(Storage):
 
         return lengthBytes + data
 
-    def monad(self, rop, op):
-        return Word(op(self.i))
-
-    def dyad(self, x, rop, op):
-        if x.t == StorageType.WORD:
-            return Word(op(self.i, x.i))
-        elif x.t == StorageType.FLOAT:
-            return Float(op(float(self.i), x.i))
-        elif x.t == StorageType.WORD_ARRAY:
-            return WordArray([op(self.i, y) for y in x.i]) # flipped map
-        elif x.t == StorageType.FLOAT_ARRAY:
-            return FloatArray([op(float(self.i), y) for y in x.i]) # flipped map
-        elif x.t == StorageType.MIXED_ARRAY:
-            return x.apply(self, rop)
-
     # Monads
 
     # atom: Word.true
+
+    # char: hotpatched by character.py to avoid circular imports
 
     # complementation: Storage.complementation
 
@@ -514,6 +642,8 @@ class Word(Storage):
     # first: Storage.identity
 
     # floor: Storage.identity
+
+    # format: unimplemented FIXME
 
     # gradeDown: Storage.identity
 
@@ -608,9 +738,15 @@ class Word(Storage):
                 return Word(0)
         return Word(1)
 
+    # expand: unsupported
+
     # find word, float: unsupported
     def find_list(self, x):
         return x.find(self)
+
+    # form: unimplemented FIXME
+
+    # format2: unimplemented FIXME
 
     def index_words(self, x):
         if self.i < 1 or self.i > len(x.i):
@@ -629,6 +765,34 @@ class Word(Storage):
             return error.Error.out_of_bounds()
         else:
             return x.i[self.i - 1]
+
+    # indexInDepth: unimplemented FIXME
+
+    def integerDivide_word(self, x):
+        try:
+            return Word(self.i // x.i)
+        except ZeroDivisionError:
+            return error.Error.division_by_zero()
+
+    # integerDivide float: unsupported
+
+    def integerDivide_words(self, x):
+        try:
+            return WordArray([self.i // y for y in x.i])
+        except ZeroDivisionError:
+            return error.Error.division_by_zero()
+
+    # integerDivide floats: unsupported
+
+    def integerDivide_mixed(self, x):
+        results = []
+        for y in x.i:
+            result = self.integerDivide(y)
+            if result.o == NounType.ERROR:
+                return result
+            else:
+                results.append(result)
+        return MixedArray(results)
 
     def join_word(self, x):
         return WordArray([self.i, x.i])
@@ -875,8 +1039,7 @@ class Word(Storage):
 
     # converge: Storage.converge_impl
 
-    def each_impl(self, f):
-        return Noun.dispatchMonad(self, f)
+    # each: Storage.each_scalar
 
     # eachPair unsupported
 
@@ -888,17 +1051,22 @@ class Word(Storage):
         return WordArray([self.i])
 
     # Dyadic Adverbs
-    def each2_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
 
-    def eachLeft_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # Storage.each2_scalar
 
-    def eachRight_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # eachLeft word: Storage.eachLeft_scalar
+    # eachLeft float: Storage.eachLeft_scalar
+    # eachLeft words: Storage.eachLeft_words
+    # eachLeft floats: Storage.eachLeft_floats
+    # eachLeft mixed: Storage.eachLeft_mixed
 
-    def overNeutral_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # eachRight word: Storage.eachRight_scalar
+    # eachRight float: Storage.eachRight_scalar
+    # eachRight words: Storage.eachRight_words
+    # eachRight floats: Storage.eachRight_floats
+    # eachRight mixed: Storage.eachRight_mixed
+
+    # Storage.overNeutral_scalar
 
     # iterate: Storage.iterate_word
     # iterate float, words, floats, mixed: unsupported
@@ -906,8 +1074,7 @@ class Word(Storage):
     # scanIterating: Storage.scanIterating_word
     # scanIterating: float, words, floats, mixed - unsupported
 
-    def scanOverNeutral_impl(self, f, x):
-        return MixedArray([x] + [Noun.dispatchDyad(self, f, x)])
+    # scanOverNeutral: Storage.scanOverNeutral_scalar
 
     # scanWhileOne: Storage.scanWhileOne_impl
 
@@ -950,24 +1117,11 @@ class Float(Storage):
 
         return lengthBytes + data
 
-    def monad(self, rop, op):
-        return Float(op(self.i))
-
-    def dyad(self, x, rop, op):
-        if x.t == StorageType.WORD:
-            return Float(op(self.i, float(x.i)))
-        elif x.t == StorageType.FLOAT:
-            return Float(op(self.i, x.i))
-        elif x.t == StorageType.WORD_ARRAY:
-            return FloatArray(list(map(lambda y: op(self.i, float(y)), x.i))) # flipped map
-        elif x.t == StorageType.FLOAT_ARRAY:
-            return FloatArray(list(map(lambda y: op(self.i, y), x.i))) # flipped map
-        elif x.t == StorageType.MIXED_ARRAY:
-            return x.apply(self, rop)
-
     # Monads
 
     # atom: Word.true
+
+    # char: unsupported
 
     # complementation: Storage.complementation_impl
 
@@ -980,6 +1134,8 @@ class Float(Storage):
 
     def floor_impl(self):
         return Word(math.floor(self.i))
+
+    # format: unimplemented FIXME
 
     # gradeDown: Storage.identity
 
@@ -1076,9 +1232,15 @@ class Float(Storage):
                 return Word.false()
         return Word.true()
 
+    # expand: unsupported
+
     # find word, float: unsupported
     def find_list(self, x):
         return x.find(FloatArray([self.i]))
+
+    # form: unimplemented FIXME
+
+    # format2: unimplemented FIXME
 
     # index word, float: unsupported
     def index_words(self, x):
@@ -1098,6 +1260,10 @@ class Float(Storage):
         extent = self.i * float(count)
         offset = int(extent)
         return Word(offset).index(x)
+
+    # indexInDepth: unimplemented FIXME
+
+    # integerDivide: unsupported
 
     def join_word(self, x):
         return MixedArray([Float(self.i), Word(x.i)])
@@ -1336,8 +1502,7 @@ class Float(Storage):
 
     # converge: Storage.converge_impl
 
-    def each_impl(self, f):
-        return Noun.dispatchMonad(self, f)
+    # each: Storage.each_scalar
 
     # eachPair unsupported
 
@@ -1349,33 +1514,28 @@ class Float(Storage):
         return FloatArray([self.i])
 
     # Dyadic adverbs
-    def each2_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
 
-    def eachLeft_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # Storage.each2_scalar
 
-    def eachLeft_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
+    # eachLeft word: Storage.eachLeft_scalar
+    # eachLeft float: Storage.eachLeft_scalar
+    # eachLeft words: Storage.eachLeft_words
+    # eachLeft floats: Storage.eachLeft_floats
+    # eachLeft mixed: Storage.eachLeft_mixed
 
-    def eachLeft_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
+    # eachRight word: Storage.eachRight_scalar
+    # eachRight float: Storage.eachRight_scalar
+    # eachRight words: Storage.eachRight_words
+    # eachRight floats: Storage.eachRight_floats
+    # eachRight mixed: Storage.eachRight_mixed
 
-    def eachLeft_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
-
-    def eachRight_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
-
-    def overNeutral_impl(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # Storage.overNeutral_scalar
 
     # iterate: unsupported
 
     # scanIterating: unsupported
 
-    def scanOverNeutral_impl(self, f, x):
-        return MixedArray([x] + [Noun.dispatchDyad(self, f, x)])
+    # scanOverNeutral: Storage.scanOverNeutral_scalar
 
     # scanWhileOne: Storage.scanWhileOne_impl
 
@@ -1414,29 +1574,15 @@ class WordArray(Storage):
 
         return lengthBytes + data
 
-    def monad(self, rop, op):
-        return WordArray([op(x) for x in self.i])
-
-    def dyad(self, x, rop, op):
-        if x.t == StorageType.WORD:
-            return WordArray(list(map(lambda y: op(y, x.i), self.i)))
-        elif x.t == StorageType.FLOAT:
-            return FloatArray(list(map(lambda y: op(float(y), x.i), self.i)))
-        elif x.t == StorageType.WORD_ARRAY:
-            return MixedArray(list(map(lambda y: WordArray(list(map(lambda z: op(y, z), x.i))), self.i)))
-        elif x.t == StorageType.FLOAT_ARRAY:
-            return MixedArray(list(map(lambda y: FloatArray(list(map(lambda z: op(float(y), z), x.i))), self.i)))
-        elif x.t == StorageType.MIXED_ARRAY:
-            return MixedArray([Word(y) for y in self.i]).dyad(x, rop, op)
-
     # Monads
 
-    # atom: Word.false
+    # atom: Storage.atom_list
+
+    # char: hotpatched by character.py to avoid circular imports
 
     # complementation: Storage.complementation_impl
 
-    def enclose_impl(self):
-        return MixedArray([self])
+    # enclose: Storage.enclose_impl
 
     # enumerate unsupported
 
@@ -1448,12 +1594,15 @@ class WordArray(Storage):
 
     # floor: Storage.identity
 
+    # format: unimplemented FIXME
+
     def gradeDown_impl(self):
         return self.gradeUp().reverse()
 
     def gradeUp_impl(self):
         return WordArray(sorted(range(1, len(self.i) + 1), key=lambda y: self.i[y - 1]))
 
+    # FIXME
     # def group_impl(self):
     #     keys = self.unique()
     #     values = []
@@ -1683,6 +1832,8 @@ class WordArray(Storage):
         else:
             return error.Error.shape_mismatch()
 
+    # expand: unimplemented FIXME
+
     def find_word(self, x):
         if len(self.i) == 0:
             return WordArray([])
@@ -1760,6 +1911,10 @@ class WordArray(Storage):
                     results.append(0)
             return WordArray(results)
 
+    # form: unimplemented FIXME
+
+    # format2: unimplemented FIXME
+
     def index_word(self, x):
         if x.i < 1 or x.i > len(self.i):
             return error.Error.out_of_bounds()
@@ -1781,6 +1936,47 @@ class WordArray(Storage):
     def index_mixed(self, x):
         return WordArray([self.index(y).i for y in x.i])
 
+    # indexInDepth: unimplemented FIXME
+
+    def integerDivide_word(self, x):
+        if x.i == 0:
+            return error.Error.division_by_zero()
+        else:
+            return WordArray([y // x.i for y in self.i])
+
+    # integerDivide float: unsupported
+
+    def integerDivide_words(self, x):
+        if len(self.i) == 0 and len(x.i) == 0:
+            return self
+        elif len(x.i) == len(self.i):
+            results = []
+            for y, z in zip(self.i, x.i):
+                if x.i == 0:
+                    return error.Error.division_by_zero()
+                else:
+                    results.append(y // z)
+            return WordArray(results)
+        else:
+            return error.Error.unequal_array_lengths()
+
+    # integerDivide floats: unsupported
+
+    def integerDivide_mixed(self, x):
+        if len(self.i) == 0 and len(x.i) == 0:
+            return self
+        elif len(x.i) == len(self.i):
+            results = []
+            for y, z in zip(self.i, x.i):
+                result = Word(y).integerDivide(z)
+                if result.o == NounType.ERROR:
+                    return result
+                else:
+                    results.append(result)
+            return MixedArray(results)
+        else:
+            return error.Error.unequal_array_lengths()
+
     def join_word(self, x):
         return WordArray(self.i + [x.i])
 
@@ -1795,6 +1991,25 @@ class WordArray(Storage):
 
     def join_mixed(self, x):
         return MixedArray([Word(y) for y in self.i] + x.i)
+
+    def join_dictionary(self, x):
+        if len(self.i) == 2:
+            y = Word(self.i[0])
+
+            results = []
+            matched = False
+            for pair in x.i:
+                key = pair.first()
+                if key.match(y) == Word.true():
+                    matched = True
+                    results.append(x)
+                else:
+                    results.append(pair)
+            if not matched:
+                results.append(x)
+            return MixedArray(results)
+        else:
+            return MixedArray([self, x])
 
     def less_scalar(self, x):
         return WordArray([Word(y).less(x).i for y in self.i])
@@ -2345,8 +2560,9 @@ class WordArray(Storage):
 
     # converge: Storage.converge
 
-    def each_impl(self, f):
-        return MixedArray([Noun.dispatchMonad(Word(y), f) for y in self.i])
+    @staticmethod
+    def each_impl(i, f):
+        return MixedArray([Noun.dispatchMonad(Word(y), f) for y in i.i])
 
     def eachPair_impl(self, f):
         results = []
@@ -2409,29 +2625,17 @@ class WordArray(Storage):
             results.append(Noun.dispatchDyad(y, f, z))
         return MixedArray(results)
 
-    def eachLeft_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # eachLeft word: Storage.eachLeft_scalar
+    # eachLeft float: Storage.eachLeft_scalar
+    # eachLeft words: Storage.eachLeft_words
+    # eachLeft floats: Storage.eachLeft_floats
+    # eachLeft mixed: Storage.eachLeft_mixed
 
-    def eachLeft_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
-
-    def eachLeft_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
-
-    def eachLeft_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
-
-    def eachRight_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
-
-    def eachRight_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
-
-    def eachRight_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
-
-    def eachRight_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
+    # eachRight word: Storage.eachRight_scalar
+    # eachRight float: Storage.eachRight_scalar
+    # eachRight words: Storage.eachRight_words
+    # eachRight floats: Storage.eachRight_floats
+    # eachRight mixed: Storage.eachRight_mixed
 
     def overNeutral_impl(self, f, x):
         if len(self.i) == 0:
@@ -2494,29 +2698,15 @@ class FloatArray(Storage):
 
         return lengthBytes + data
 
-    def monad(self, rop, op):
-        return FloatArray([op(x) for x in self.i])
-
-    def dyad(self, x, rop, op):
-        if x.t == StorageType.WORD:
-            return FloatArray([op(y, float(x.i)) for y in self.i])
-        elif x.t == StorageType.FLOAT:
-            return FloatArray([op(y, x.i) for y in self.i])
-        elif x.t == StorageType.WORD_ARRAY:
-            return MixedArray([FloatArray([op(y, z) for z in x.i]) for y in self.i])
-        elif x.t == StorageType.FLOAT_ARRAY:
-            return MixedArray([FloatArray([op(float(y), z) for z in x.i]) for y in self.i])
-        elif x.t == StorageType.MIXED_ARRAY:
-            return MixedArray([MixedArray([rop(Float(y), z) for z in x.i]) for y in self.i])
-
     # Monads
 
-    # atom: Word.false
+    # atom: Storage.atom_list
+
+    # char: unsupported
 
     # complementation: Storage.complementation
 
-    def enclose_impl(self):
-        return MixedArray([self])
+    # enclose: Storage.enclose_impl
 
     # enumerate: unsupported
 
@@ -2528,6 +2718,8 @@ class FloatArray(Storage):
 
     def floor_impl(self):
         return WordArray([math.floor(y) for y in self.i])
+
+    # format: unimplemented FIXME
 
     def gradeDown_impl(self):
         return self.gradeUp().reverse()
@@ -2822,6 +3014,10 @@ class FloatArray(Storage):
                     results.append(0)
             return WordArray(results)
 
+    # form: unimplemented FIXME
+
+    # format2: unimplemented FIXME
+
     def index_word(self, x):
         if x.i < 1 or x.i > len(self.i):
             return error.Error.out_of_bounds()
@@ -2843,6 +3039,10 @@ class FloatArray(Storage):
     def index_mixed(self, x):
         return FloatArray([self.index(y).i for y in x.i])
 
+    # indexInDepth: unimplemented FIXME
+
+    # integerDivide: unimplemented FIXME
+
     def join_word(self, x):
         return FloatArray(self.i + [float(x.i)])
 
@@ -2857,6 +3057,25 @@ class FloatArray(Storage):
 
     def join_mixed(self, x):
         return MixedArray([Float(y) for y in self.i] + x.i)
+
+    def join_dictionary(self, x):
+        if len(self.i) == 2:
+            y = Float(self.i[0])
+
+            results = []
+            matched = False
+            for pair in x.i:
+                key = pair.first()
+                if key.match(y) == Word.true():
+                    matched = True
+                    results.append(x)
+                else:
+                    results.append(pair)
+            if not matched:
+                results.append(x)
+            return MixedArray(results)
+        else:
+            return MixedArray([self, x])
 
     def less_scalar(self, x):
         return WordArray([Float(y).less(x).i for y in self.i])
@@ -3384,8 +3603,9 @@ class FloatArray(Storage):
 
     # converge: Storage.converge_impl
 
-    def each_impl(self, f):
-        return MixedArray([Noun.dispatchMonad(Float(y), f) for y in self.i])
+    @staticmethod
+    def each_impl(i, f):
+        return MixedArray([Noun.dispatchMonad(Float(y), f) for y in i.i])
 
     def eachPair_impl(self, f):
         results = []
@@ -3449,29 +3669,17 @@ class FloatArray(Storage):
             results.append(Noun.dispatchDyad(y, f, z))
         return MixedArray(results)
 
-    def eachLeft_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # eachLeft word: Storage.eachLeft_scalar
+    # eachLeft float: Storage.eachLeft_scalar
+    # eachLeft words: Storage.eachLeft_words
+    # eachLeft floats: Storage.eachLeft_floats
+    # eachLeft mixed: Storage.eachLeft_mixed
 
-    def eachLeft_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
-
-    def eachLeft_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
-
-    def eachLeft_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
-
-    def eachRight_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
-
-    def eachRight_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
-
-    def eachRight_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
-
-    def eachRight_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
+    # eachRight word: Storage.eachRight_scalar
+    # eachRight float: Storage.eachRight_scalar
+    # eachRight words: Storage.eachRight_words
+    # eachRight floats: Storage.eachRight_floats
+    # eachRight mixed: Storage.eachRight_mixed
 
     def overNeutral_impl(self, f, x):
         if len(self.i) == 0:
@@ -3560,28 +3768,15 @@ class MixedArray(Storage):
 
         return lengthBytes + data
 
-    def monad(self, rop, op):
-        return MixedArray([rop(x) for x in self.i])
-
-    def dyad(self, x, rop, op):
-        results = []
-        for y in self.i:
-            result = rop(y, x)
-            if result.o == NounType.ERROR:
-                return result
-            else:
-                results.append(result)
-
-        return MixedArray(results)
-
     # Monads
 
-    # atom: Word.false
+    # atom: Storage.atom_list
+
+    # char: hotpatched by character.py to avoid circular imports
 
     # complementation: Storage.complementation_impl
 
-    def enclose_impl(self):
-        return MixedArray([self])
+    # enclose: Storage.enclose_impl
 
     # enumerate: unsupported
 
@@ -3593,6 +3788,8 @@ class MixedArray(Storage):
 
     def floor_impl(self):
         return MixedArray([x.floor() for x in self.i])
+
+    # format: unimplemented FIXME
 
     def gradeDown_impl(self):
         return self.gradeUp().reverse()
@@ -3814,6 +4011,8 @@ class MixedArray(Storage):
     def equal_impl(self, x):
         return WordArray([y.equal(x).i for y in self.i])
 
+    # expand: unimplemented FIXME
+
     def find_word(self, x):
         if len(self.i) == 0:
             return WordArray([])
@@ -3898,6 +4097,10 @@ class MixedArray(Storage):
                     results.append(0)
             return WordArray(results)
 
+    # form: unimplemented FIXME
+
+    # format2: unimplemented FIXME
+
     def index_word(self, x):
         if x.i < 1 or x.i > len(self.i):
             return error.Error.out_of_bounds()
@@ -3919,6 +4122,48 @@ class MixedArray(Storage):
     def index_mixed(self, x):
         return MixedArray([self.index(y) for y in x.i])
 
+    # indexInDepth: unimplemented FIXME
+
+    def integerDivide_word(self, x):
+        if x.i == 0:
+            return error.Error.division_by_zero()
+        else:
+            return MixedArray([y.integerDivide(x) for y in self.i])
+
+    # integerDivide float: unsupported
+
+    def integerDivide_words(self, x):
+        if len(self.i) == 0:
+            return self
+        elif len(self.i) == len(x.i):
+            results = []
+            for y, z in zip(self.i, x.i):
+                if z == 0:
+                    return error.Error.division_by_zero()
+                else:
+                    result = y.integerDivide(Word(z))
+                    results.append(result)
+            return MixedArray(results)
+        else:
+            return error.Error.unequal_array_lengths()
+
+    # integerDivide floats: unsupported
+
+    def integerDivide_mixed(self, x):
+        if len(self.i) == 0:
+            return self
+        elif len(self.i) == len(x.i):
+            results = []
+            for y, z in zip(self.i, x.i):
+                result = y.integerDivide(z)
+                if result.o == NounType.ERROR:
+                    return result
+                else:
+                    results.append(result)
+            return MixedArray(results)
+        else:
+            return error.Error.unequal_array_lengths()
+
     def join_scalar(self, x):
         return MixedArray(self.i + [x])
 
@@ -3930,6 +4175,25 @@ class MixedArray(Storage):
 
     def join_mixed(self, x):
         return MixedArray(self.i + x.i)
+
+    def join_dictionary(self, x):
+        if len(self.i) == 2:
+            y = self.i[0]
+
+            results = []
+            matched = False
+            for pair in x.i:
+                key = pair.first()
+                if key.match(y) == Word.true():
+                    matched = True
+                    results.append(x)
+                else:
+                    results.append(pair)
+            if not matched:
+                results.append(x)
+            return MixedArray(results)
+        else:
+            return MixedArray([self, x])
 
     def less_impl(self, x):
         return WordArray([y.less(x).i for y in self.i])
@@ -4438,8 +4702,9 @@ class MixedArray(Storage):
 
     # converge: Storage.converge_impl
 
-    def each_impl(self, f):
-        return MixedArray([Noun.dispatchMonad(y, f) for y in self.i])
+    @staticmethod
+    def each_impl(i, f):
+        return MixedArray([Noun.dispatchMonad(y, f) for y in i.i])
 
     def eachPair_impl(self, f):
         results = []
@@ -4503,29 +4768,17 @@ class MixedArray(Storage):
             results.append(Noun.dispatchDyad(y, f, z))
         return MixedArray(results)
 
-    def eachLeft_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
+    # eachLeft word: Storage.eachLeft_scalar
+    # eachLeft float: Storage.eachLeft_scalar
+    # eachLeft words: Storage.eachLeft_words
+    # eachLeft floats: Storage.eachLeft_floats
+    # eachLeft mixed: Storage.eachLeft_mixed
 
-    def eachLeft_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
-
-    def eachLeft_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
-
-    def eachLeft_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
-
-    def eachRight_scalar(self, f, x):
-        return Noun.dispatchDyad(self, f, x)
-
-    def eachRight_words(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Word(y)) for y in x.i])
-
-    def eachRight_floats(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, Float(y)) for y in x.i])
-
-    def eachRight_mixed(self, f, x):
-        return MixedArray([Noun.dispatchDyad(self, f, y) for y in x.i])
+    # eachRight word: Storage.eachRight_scalar
+    # eachRight float: Storage.eachRight_scalar
+    # eachRight words: Storage.eachRight_words
+    # eachRight floats: Storage.eachRight_floats
+    # eachRight mixed: Storage.eachRight_mixed
 
     def overNeutral_impl(self, f, x):
         if len(self.i) == 0:
@@ -4706,6 +4959,3 @@ class MixedArray(Storage):
 #             else:
 #                 results.append(MixedArray([key, value]))
 #         return MixedArray(results)
-#
-#     def atom(self):
-#         return Word.false()

@@ -2,6 +2,7 @@ from storage import *
 from noun import Noun, MetaNoun
 from integer import Integer
 from real import Real
+import error
 
 class MetaList(MetaNoun, type):
     def __new__(cls, name, bases, dct):
@@ -9,12 +10,15 @@ class MetaList(MetaNoun, type):
 
         Noun.dispatch[(NounType.LIST, StorageType.WORD_ARRAY)] = {
             # Monads
-            Monads.atom: Word.false,
+            Monads.atom: Storage.atom_list,
+            # Monads.char: hotpatched by character.py to avoid circular imports
             Monads.complementation: Storage.complementation_impl,
-            Monads.enclose: WordArray.enclose_impl,
-            #Monads.enumerate: unsupported
+            Monads.enclose: Storage.enclose_impl,
+            # Monads.enumerate: unsupported
+            # Monads.expand: unimplemented FIXME
             Monads.first: WordArray.first_impl,
             Monads.floor: Storage.identity,
+            # Monads.format: unimplemented FIXME
             Monads.gradeDown: WordArray.gradeDown_impl,
             Monads.gradeUp: WordArray.gradeUp_impl,
             # Monads.group: WordArray.group_impl,
@@ -27,6 +31,7 @@ class MetaList(MetaNoun, type):
             Monads.unique: WordArray.unique_impl,
 
             # Dyads
+            #
             # Dyads.amend: {
             #     # NounType.INTEGER unsupported
             #     # NounType.REAL unsupported
@@ -67,6 +72,8 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): WordArray.find_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.find_mixed,
             },
+            # form: unimplemented FIXME
+            # format2: unimplemented FIXME
             Dyads.index: {
                 (NounType.INTEGER, StorageType.WORD): WordArray.index_word,
                 (NounType.REAL, StorageType.FLOAT): WordArray.index_float,
@@ -74,12 +81,21 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): WordArray.index_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.index_mixed,
             },
+            # indexInDepth: unimplemented FIXME
+            Dyads.integerDivide: {
+                (NounType.INTEGER, StorageType.WORD): WordArray.integerDivide_word,
+                # (NounType.REAL, StorageType.FLOAT): unsupported
+                (NounType.LIST, StorageType.WORD_ARRAY): WordArray.integerDivide_words,
+                # (NounType.LIST, StorageType.FLOAT_ARRAY): unsupported
+                (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.integerDivide_mixed,
+            },
             Dyads.join: {
                 (NounType.INTEGER, StorageType.WORD): WordArray.join_word,
                 (NounType.REAL, StorageType.FLOAT): WordArray.join_float,
                 (NounType.LIST, StorageType.WORD_ARRAY): WordArray.join_words,
                 (NounType.LIST, StorageType.FLOAT_ARRAY): WordArray.join_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.join_mixed,
+                (NounType.DICTIONARY, StorageType.WORD_ARRAY): WordArray.join_dictionary,
             },
             Dyads.less: {
                 (NounType.INTEGER, StorageType.WORD): WordArray.less_scalar,
@@ -94,6 +110,7 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.WORD_ARRAY): WordArray.match_words,
                 (NounType.LIST, StorageType.FLOAT_ARRAY): WordArray.match_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.match_mixed,
+                (NounType.DICTIONARY, StorageType.MIXED_ARRAY): Word.false,
             },
             Dyads.max: {
                 (NounType.INTEGER, StorageType.WORD): WordArray.max_word,
@@ -189,18 +206,18 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.each2_mixed,
             },
             Adverbs.eachLeft: {
-                (NounType.INTEGER, StorageType.WORD): WordArray.eachLeft_scalar,
-                (NounType.REAL, StorageType.FLOAT): WordArray.eachLeft_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): WordArray.eachLeft_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): WordArray.eachLeft_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.eachLeft_mixed,
+                (NounType.INTEGER, StorageType.WORD): Storage.eachLeft_scalar,
+                (NounType.REAL, StorageType.FLOAT): Storage.eachLeft_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachLeft_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachLeft_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachLeft_mixed,
             },
             Adverbs.eachRight: {
-                (NounType.INTEGER, StorageType.WORD): WordArray.eachRight_scalar,
-                (NounType.REAL, StorageType.FLOAT): WordArray.eachRight_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): WordArray.eachRight_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): WordArray.eachRight_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.eachRight_mixed,
+                (NounType.INTEGER, StorageType.WORD): Storage.eachRight_scalar,
+                (NounType.REAL, StorageType.FLOAT): Storage.eachRight_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachRight_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachRight_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachRight_mixed,
             },
             Adverbs.overNeutral: {
                 (NounType.INTEGER, StorageType.WORD): WordArray.overNeutral_impl,
@@ -231,29 +248,23 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): WordArray.scanOverNeutral_impl,
             },
             Adverbs.scanWhileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.scanWhileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.scanWhileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
             Adverbs.whileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.whileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.whileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 
         Noun.dispatch[(NounType.LIST, StorageType.FLOAT_ARRAY)] = {
             # Monads
-            Monads.atom: Word.false,
+            Monads.atom: Storage.atom_list,
+            # Monads.char: unsupported
             Monads.complementation: Storage.complementation_impl,
-            Monads.enclose: FloatArray.enclose_impl,
+            Monads.enclose: Storage.enclose_impl,
             #Monads.enumerate: unsupported
             Monads.first: FloatArray.first_impl,
             Monads.floor: FloatArray.floor_impl,
+            # Monads.format: unimplemented FIXME
             Monads.gradeDown: FloatArray.gradeDown_impl,
             Monads.gradeUp: FloatArray.gradeUp_impl,
             # Monads.group: FloatArray.group_impl,
@@ -306,6 +317,8 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): FloatArray.find_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.find_mixed,
             },
+            # form: unimplemented FIXME
+            # format2: unimplemented FIXME
             Dyads.index: {
                 (NounType.INTEGER, StorageType.WORD): FloatArray.index_word,
                 (NounType.REAL, StorageType.FLOAT): FloatArray.index_float,
@@ -313,12 +326,15 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): FloatArray.index_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.index_mixed,
             },
+            # indexInDepth: unimplemented FIXME
+            # integerDivide: unimplemented FIXME
             Dyads.join: {
                 (NounType.INTEGER, StorageType.WORD): FloatArray.join_word,
                 (NounType.REAL, StorageType.FLOAT): FloatArray.join_float,
                 (NounType.LIST, StorageType.WORD_ARRAY): FloatArray.join_words,
                 (NounType.LIST, StorageType.FLOAT_ARRAY): FloatArray.join_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.join_mixed,
+                (NounType.DICTIONARY, StorageType.WORD_ARRAY): FloatArray.join_dictionary,
             },
             Dyads.less: {
                 (NounType.INTEGER, StorageType.WORD): FloatArray.less_scalar,
@@ -333,6 +349,7 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.WORD_ARRAY): FloatArray.match_words,
                 (NounType.LIST, StorageType.FLOAT_ARRAY): FloatArray.match_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.match_mixed,
+                (NounType.DICTIONARY, StorageType.MIXED_ARRAY): Word.false,
             },
             Dyads.max: {
                 (NounType.INTEGER, StorageType.WORD): FloatArray.max_word,
@@ -422,18 +439,18 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.each2_mixed,
             },
             Adverbs.eachLeft: {
-                (NounType.INTEGER, StorageType.WORD): FloatArray.eachLeft_scalar,
-                (NounType.REAL, StorageType.FLOAT): FloatArray.eachLeft_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): FloatArray.eachLeft_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): FloatArray.eachLeft_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.eachLeft_mixed,
+                (NounType.INTEGER, StorageType.WORD): Storage.eachLeft_scalar,
+                (NounType.REAL, StorageType.FLOAT): Storage.eachLeft_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachLeft_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachLeft_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachLeft_mixed,
             },
             Adverbs.eachRight: {
-                (NounType.INTEGER, StorageType.WORD): FloatArray.eachRight_scalar,
-                (NounType.REAL, StorageType.FLOAT): FloatArray.eachRight_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): FloatArray.eachRight_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): FloatArray.eachRight_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.eachRight_mixed,
+                (NounType.INTEGER, StorageType.WORD): Storage.eachRight_scalar,
+                (NounType.REAL, StorageType.FLOAT): Storage.eachRight_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachRight_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachRight_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachRight_mixed,
             },
             Adverbs.overNeutral: {
                 (NounType.INTEGER, StorageType.WORD): FloatArray.overNeutral_impl,
@@ -464,29 +481,23 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): FloatArray.scanOverNeutral_impl,
             },
             Adverbs.scanWhileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.scanWhileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.scanWhileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
             Adverbs.whileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.whileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.whileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 
         Noun.dispatch[(NounType.LIST, StorageType.MIXED_ARRAY)] = {
             # Monads
-            Monads.atom: Word.false,
+            Monads.atom: Storage.atom_list,
+            # char: hotpatched by character.py to avoid circular imports
             Monads.complementation: Storage.complementation_impl,
-            Monads.enclose: MixedArray.enclose_impl,
+            Monads.enclose: Storage.enclose_impl,
             #Monads.enumerate: unsupported
             Monads.first: MixedArray.first_impl,
             Monads.floor: MixedArray.floor_impl,
+            # Monads.format: unimplemented FIXME
             Monads.gradeDown: MixedArray.gradeDown_impl,
             Monads.gradeUp: MixedArray.gradeUp_impl,
             # Monads.group: MixedArray.group_impl,
@@ -539,6 +550,8 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): MixedArray.find_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.find_mixed,
             },
+            # form: unimplemented FIXME
+            # format2: unimplemented FIXME
             Dyads.index: {
                 (NounType.INTEGER, StorageType.WORD): MixedArray.index_word,
                 (NounType.REAL, StorageType.FLOAT): MixedArray.index_float,
@@ -546,12 +559,21 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): MixedArray.index_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.index_mixed,
             },
+            # indexInDepth: unimplemented FIXME
+            Dyads.integerDivide: {
+                (NounType.INTEGER, StorageType.WORD): MixedArray.integerDivide_word,
+                # (NounType.REAL, StorageType.FLOAT): MixedArray.join_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): MixedArray.integerDivide_words,
+                # (NounType.LIST, StorageType.FLOAT_ARRAY): unsupported
+                (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.integerDivide_mixed,
+            },
             Dyads.join: {
                 (NounType.INTEGER, StorageType.WORD): MixedArray.join_scalar,
                 (NounType.REAL, StorageType.FLOAT): MixedArray.join_scalar,
                 (NounType.LIST, StorageType.WORD_ARRAY): MixedArray.join_words,
                 (NounType.LIST, StorageType.FLOAT_ARRAY): MixedArray.join_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.join_mixed,
+                (NounType.DICTIONARY, StorageType.WORD_ARRAY): MixedArray.join_dictionary,
             },
             Dyads.less: {
                 (NounType.INTEGER, StorageType.WORD): MixedArray.less_impl,
@@ -566,6 +588,7 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.WORD_ARRAY): MixedArray.match_words,
                 (NounType.LIST, StorageType.FLOAT_ARRAY): MixedArray.match_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.match_mixed,
+                (NounType.DICTIONARY, StorageType.MIXED_ARRAY): Word.false,
             },
             Dyads.max: {
                 (NounType.INTEGER, StorageType.WORD): MixedArray.max_word,
@@ -661,18 +684,18 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.each2_mixed,
             },
             Adverbs.eachLeft: {
-                (NounType.INTEGER, StorageType.WORD): MixedArray.eachLeft_scalar,
-                (NounType.REAL, StorageType.FLOAT): MixedArray.eachLeft_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): MixedArray.eachLeft_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): MixedArray.eachLeft_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.eachLeft_mixed,
+                (NounType.INTEGER, StorageType.WORD): Storage.eachLeft_scalar,
+                (NounType.REAL, StorageType.FLOAT): Storage.eachLeft_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachLeft_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachLeft_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachLeft_mixed,
             },
             Adverbs.eachRight: {
-                (NounType.INTEGER, StorageType.WORD): MixedArray.eachRight_scalar,
-                (NounType.REAL, StorageType.FLOAT): MixedArray.eachRight_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): MixedArray.eachRight_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): MixedArray.eachRight_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.eachRight_mixed,
+                (NounType.INTEGER, StorageType.WORD): Storage.eachRight_scalar,
+                (NounType.REAL, StorageType.FLOAT): Storage.eachRight_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachRight_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachRight_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachRight_mixed,
             },
             Adverbs.overNeutral: {
                 (NounType.INTEGER, StorageType.WORD): MixedArray.overNeutral_impl,
@@ -703,18 +726,10 @@ class MetaList(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): MixedArray.scanOverNeutral_impl,
             },
             Adverbs.scanWhileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.scanWhileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.scanWhileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
             Adverbs.whileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.whileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.whileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 
@@ -722,7 +737,21 @@ class MetaList(MetaNoun, type):
 
 class List(Noun, metaclass=MetaList):
     @staticmethod
-    def new(x):
+    def empty(typeHint=StorageType.MIXED_ARRAY):
+        return List.new([], typeHint=typeHint)
+
+    @staticmethod
+    def new(x, typeHint=StorageType.MIXED_ARRAY):
+        if len(x) == 0:
+            if typeHint == StorageType.WORD_ARRAY:
+                return WordArray(x, NounType.LIST)
+            elif typeHint == StorageType.FLOAT_ARRAY:
+                return FloatArray(x, NounType.LIST)
+            elif typeHint == StorageType.MIXED_ARRAY:
+                return MixedArray(x, NounType.LIST)
+            else:
+                return error.Error.bad_initialization()
+
         if type(x) == list:
             if all(map(lambda y: type(y) == int, x)):
                  return WordArray(x, NounType.LIST)
@@ -739,12 +768,12 @@ class List(Noun, metaclass=MetaList):
                         results.append(Real.new(y))
                     elif type(y) == list:
                         result = List.new(y)
-                        if isinstance(result, Error):
+                        if isinstance(result, error.Error):
                             return result
                         else:
                             results.append(result)
                     else:
-                        return Error.bad_initialization()
+                        return error.Error.bad_initialization()
                 return MixedArray(results, o=NounType.LIST)
         else:
-            return Error.bad_initialization()
+            return error.Error.bad_initialization()

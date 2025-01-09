@@ -1,5 +1,7 @@
 from storage import *
 from noun import Noun, MetaNoun
+from utils import match_dispatch, expand_dispatch
+
 
 class MetaReal(MetaNoun, type):
     def __new__(cls, name, bases, dct):
@@ -8,11 +10,13 @@ class MetaReal(MetaNoun, type):
         Noun.dispatch[(NounType.REAL, StorageType.FLOAT)] = {
             # Monads
             Monads.atom: Word.true,
+            # Monads.char: unsupported
             Monads.complementation: Storage.complementation_impl,
             Monads.enclose: Float.enclose_impl,
-            # Monads.enumerate unsupported
+            # Monads.enumerate: unsupported
             Monads.first: Storage.identity,
             Monads.floor: Float.floor_impl,
+            # Monads.format: unimplemented FIXME
             Monads.gradeDown: Storage.identity,
             Monads.gradeUp: Storage.identity,
             #StorageMonads.group unsupported
@@ -31,21 +35,10 @@ class MetaReal(MetaNoun, type):
             #     # NounType.LIST unsupported
             # },
             # Dyads.cut unsupported
-            Dyads.divide: {
-                (NounType.INTEGER, StorageType.WORD): Float.divide_word,
-                (NounType.REAL, StorageType.FLOAT): Float.divide_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.divide_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.divide_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.divide_mixed,
-            },
+            Dyads.divide: match_dispatch(Float.divide_word, Float.divide_float, Float.divide_words, Float.divide_floats, Float.divide_mixed),
             # Dyads.drop unsupported
-            Dyads.equal: {
-                (NounType.INTEGER, StorageType.WORD): Float.equal_word,
-                (NounType.REAL, StorageType.FLOAT): Float.equal_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.equal_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.equal_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.equal_mixed,
-            },
+            Dyads.equal: match_dispatch(Float.equal_word, Float.equal_word, Float.equal_words, Float.equal_floats, Float.equal_mixed),
+            # Dyads.expand: unsupported
             Dyads.find: {
                 # NounType.INTEGER unsupported
                 # NounType.REAL unsupported
@@ -53,6 +46,8 @@ class MetaReal(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): Float.find_list,
                 (NounType.LIST, StorageType.MIXED_ARRAY): Float.find_list,
             },
+            # form: unimplemented FIXME
+            # format2: unimplemented FIXME
             Dyads.index: {
                 # NounType.INTEGER unsupported
                 # NounType.REAL unsupported
@@ -60,69 +55,17 @@ class MetaReal(MetaNoun, type):
                 (NounType.LIST, StorageType.FLOAT_ARRAY): Float.index_floats,
                 (NounType.LIST, StorageType.MIXED_ARRAY): Float.index_mixed,
             },
-            Dyads.join: {
-                (NounType.INTEGER, StorageType.WORD): Float.join_word,
-                (NounType.REAL, StorageType.FLOAT): Float.join_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.join_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.join_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.join_mixed,
-            },
-            Dyads.less: {
-                (NounType.INTEGER, StorageType.WORD): Float.less_word,
-                (NounType.REAL, StorageType.FLOAT): Float.less_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.less_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.less_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.less_mixed,
-            },
-            Dyads.match: {
-                (NounType.INTEGER, StorageType.WORD): Float.match_word,
-                (NounType.REAL, StorageType.FLOAT): Float.match_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Word.false,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Word.false,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Word.false,
-            },
-            Dyads.max: {
-                (NounType.INTEGER, StorageType.WORD): Float.max_word,
-                (NounType.REAL, StorageType.FLOAT): Float.max_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.max_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.max_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.max_mixed,
-            },
-            Dyads.min: {
-                (NounType.INTEGER, StorageType.WORD): Float.min_word,
-                (NounType.REAL, StorageType.FLOAT): Float.min_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.min_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.min_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.min_mixed,
-            },
-            Dyads.minus: {
-                (NounType.INTEGER, StorageType.WORD): Float.minus_word,
-                (NounType.REAL, StorageType.FLOAT): Float.minus_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.minus_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.minus_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.minus_mixed,
-            },
-            Dyads.more: {
-                (NounType.INTEGER, StorageType.WORD): Float.more_word,
-                (NounType.REAL, StorageType.FLOAT): Float.more_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.more_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.more_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.more_mixed,
-            },
-            Dyads.plus: {
-                (NounType.INTEGER, StorageType.WORD): Float.plus_word,
-                (NounType.REAL, StorageType.FLOAT): Float.plus_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.plus_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.plus_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.plus_mixed,
-            },
-            Dyads.power: {
-                (NounType.INTEGER, StorageType.WORD): Float.power_scalar,
-                (NounType.REAL, StorageType.FLOAT): Float.power_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.power_list,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.power_list,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.power_mixed,
-            },
+            # indexInDepth: unimplemented FIXME
+            # integerDivide: unsupported
+            Dyads.join: match_dispatch(Float.join_word, Float.join_float, Float.join_words, Float.join_floats, Float.join_mixed),
+            Dyads.less: match_dispatch(Float.less_word, Float.less_float, Float.less_words, Float.less_floats, Float.less_mixed),
+            Dyads.match: match_dispatch(Float.match_word, Float.match_float, Word.false, Word.false, Word.false, dictionary=Word.false),
+            Dyads.max: match_dispatch(Float.max_word, Float.max_float, Float.max_words, Float.max_floats, Float.max_mixed),
+            Dyads.min: match_dispatch(Float.min_word, Float.min_float, Float.min_words, Float.min_floats, Float.min_mixed),
+            Dyads.minus: match_dispatch(Float.minus_word, Float.minus_float, Float.minus_words, Float.minus_floats, Float.minus_mixed),
+            Dyads.more: match_dispatch(Float.more_word, Float.more_float, Float.more_words, Float.more_floats, Float.more_mixed),
+            Dyads.plus: match_dispatch(Float.plus_word, Float.plus_float, Float.plus_words, Float.plus_floats, Float.plus_mixed),
+            Dyads.power: match_dispatch(Float.power_scalar, Float.power_scalar, Float.power_list, Float.power_list, Float.power_mixed),
             # Dyads.reshape unsupported
             # Dyads.remainder unsupported
             # Dyads.rotate unsupported
@@ -134,51 +77,21 @@ class MetaReal(MetaNoun, type):
                 (NounType.LIST, StorageType.MIXED_ARRAY): Float.split_list,
             },
             # Dyads.take unsupported
-            Dyads.times: {
-                (NounType.INTEGER, StorageType.WORD): Float.times_word,
-                (NounType.REAL, StorageType.FLOAT): Float.times_float,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.times_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.times_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.times_mixed,
-            },
+            Dyads.times: match_dispatch(Float.times_word, Float.times_float, Float.times_words, Float.times_floats, Float.times_mixed),
 
             # Monadic Adverbs
             Adverbs.converge: Storage.converge_impl,
-            Adverbs.each: Float.each_impl,
+            Adverbs.each: Storage.each_scalar,
             #StorageAdverbs.eachPair: unsupported
             Adverbs.over: Storage.identity,
             Adverbs.scanConverging: Storage.scanConverging_impl,
             Adverbs.scanOver: Float.scanOver_impl,
 
             # Dyadic Adverbs
-            Adverbs.each2: {
-                (NounType.INTEGER, StorageType.WORD): Float.each2_impl,
-                (NounType.REAL, StorageType.FLOAT): Float.each2_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.each2_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.each2_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.each2_impl,
-            },
-            Adverbs.eachLeft: {
-                (NounType.INTEGER, StorageType.WORD): Float.eachLeft_scalar,
-                (NounType.REAL, StorageType.FLOAT): Float.eachLeft_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.eachLeft_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.eachLeft_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.eachLeft_mixed,
-            },
-            Adverbs.eachRight: {
-                (NounType.INTEGER, StorageType.WORD): Float.eachRight_impl,
-                (NounType.REAL, StorageType.FLOAT): Float.eachRight_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.eachRight_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.eachRight_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.eachRight_impl,
-            },
-            Adverbs.overNeutral: {
-                (NounType.INTEGER, StorageType.WORD): Float.overNeutral_impl,
-                (NounType.REAL, StorageType.FLOAT): Float.overNeutral_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.overNeutral_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.overNeutral_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.overNeutral_impl,
-            },
+            Adverbs.each2: expand_dispatch(Storage.each2_scalar),
+            Adverbs.eachLeft: match_dispatch(Storage.eachLeft_scalar, Storage.eachLeft_scalar, Float.eachLeft_words, Float.eachLeft_floats, Float.eachLeft_mixed),
+            Adverbs.eachRight: match_dispatch(Storage.eachRight_scalar, Storage.eachRight_scalar, Storage.eachRight_words, Storage.eachRight_floats, Storage.eachRight_mixed),
+            Adverbs.overNeutral: expand_dispatch(Float.overNeutral_scalar),
             Adverbs.iterate: {
                 (NounType.INTEGER, StorageType.WORD): Storage.iterate_word,
                 # (NounType.REAL, StorageType.FLOAT): unsupported
@@ -193,26 +106,12 @@ class MetaReal(MetaNoun, type):
                 # (NounType.LIST, StorageType.FLOAT_ARRAY): unsupported
                 # (NounType.LIST, StorageType.MIXED_ARRAY): unsupported
             },
-            Adverbs.scanOverNeutral: {
-                (NounType.INTEGER, StorageType.WORD): Float.scanOverNeutral_impl,
-                (NounType.REAL, StorageType.FLOAT): Float.scanOverNeutral_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Float.scanOverNeutral_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Float.scanOverNeutral_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Float.scanOverNeutral_impl,
-            },
+            Adverbs.scanOverNeutral: expand_dispatch(Float.scanOverNeutral_scalar),
             Adverbs.scanWhileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.scanWhileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.scanWhileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.scanWhileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
             Adverbs.whileOne: {
-                (NounType.INTEGER, StorageType.WORD): Storage.whileOne_impl,
-                (NounType.REAL, StorageType.FLOAT): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.whileOne_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.whileOne_impl,
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 

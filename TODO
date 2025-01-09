@@ -5,5 +5,14 @@ Add index-in-depth
 Add integer-divide
 Add reshape
 
-Reimplement dictionary and re-add group and amend
+re-add group and amend
 Implement amend-at-depth
+
+Implement Character
+Implement char
+
+Implement undefined
+Implement define
+
+Implement string
+Implement format and format2
