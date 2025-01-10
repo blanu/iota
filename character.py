@@ -279,6 +279,16 @@ class MetaCharacter(integer.MetaInteger, type):
             # Dyads.take unsupported
             # Dyads.times: unsupported
 
+            storage.Dyads.apply: {
+                (storage.NounType.BUILTIN_MONAD, storage.StorageType.WORD): storage.Storage.apply_builtin_monad,
+                (storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_monad,
+            },
+
+            storage.Triads.apply: {
+                (storage.NounType.BUILTIN_DYAD, storage.StorageType.WORD): storage.Storage.apply_builtin_dyad,
+                (storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_dyad,
+            },
+
             # Monadic Adverbs
             storage.Adverbs.converge: storage.Storage.converge_impl,
             storage.Adverbs.each: storage.Storage.each_scalar,

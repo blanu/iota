@@ -98,6 +98,16 @@ class MetaInteger(MetaNoun, type):
             # Dyads.take unsupported
             Dyads.times: match_dispatch(Word.times_word, Word.times_float, Word.times_words, Word.times_floats, Word.times_mixed),
 
+            storage.Dyads.apply: {
+                (storage.NounType.BUILTIN_MONAD, storage.StorageType.WORD): storage.Storage.apply_builtin_monad,
+                (storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_monad,
+            },
+
+            storage.Triads.apply: {
+                (storage.NounType.BUILTIN_DYAD, storage.StorageType.WORD): storage.Storage.apply_builtin_dyad,
+                (storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_dyad,
+            },
+
             # Monadic Adverbs
             Adverbs.converge: Storage.converge_impl,
             Adverbs.each: Storage.each_scalar,
@@ -115,10 +125,10 @@ class MetaInteger(MetaNoun, type):
             # Adverbs.scanIterating: unsupported
             Adverbs.scanOverNeutral: expand_dispatch(Storage.scanOverNeutral_scalar),
             Adverbs.scanWhileOne: {
-                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.whileOne_impl,
             },
             Adverbs.whileOne: {
-                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 

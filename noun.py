@@ -61,6 +61,32 @@ class Noun(metaclass=MetaNoun):
         return specialization(i, x)
 
     @staticmethod
+    def dispatchTriad(i, f, x, y):
+        if i.o == storage.NounType.ERROR:
+            return i
+
+        if f.t == storage.StorageType.WORD:
+            triad = storage.Triads(f.i)
+            if not triad:
+                return error.Error.bad_operation()
+        else:
+            return error.Error.bad_operation()
+
+        if not (i.o, i.t) in Noun.dispatch:
+            return error.Error.bad_operation()
+
+        verbs = Noun.dispatch[(i.o, i.t)]
+        if not triad in verbs:
+            return error.Error.bad_operation()
+
+        verb = verbs[triad]
+        if not (x.o, x.t) in verb:
+            return error.Error.invalid_argument()
+
+        specialization = verb[(x.o, x.t)]
+        return specialization(i, x, y)
+
+    @staticmethod
     def dispatchMonadicAdverb(i, f, g):
         d = Noun.dispatch
         if i.o == storage.NounType.ERROR:

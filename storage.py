@@ -1,7 +1,6 @@
 import struct
 from enum import Enum
 import math
-
 from squeeze import squeeze, expand
 from noun import Noun
 import error
@@ -26,6 +25,8 @@ class Monads(Enum):
     transpose = 16
     unique = 17
     count = 18
+
+    evaluate = 19
 
     def symbol(self):
         return Word(self.value, o=NounType.BUILTIN_MONAD)
@@ -59,8 +60,16 @@ class Dyads(Enum):
     take = 139
     times = 140
 
+    apply = 145
+
     def symbol(self):
         return Word(self.value, o=NounType.BUILTIN_DYAD)
+
+class Triads(Enum):
+    apply = 300
+
+    def symbol(self):
+        return Word(self.value, o=NounType.BUILTIN_TRIAD)
 
 class Adverbs(Enum):
     each = 41
@@ -105,8 +114,8 @@ class NounType(Enum):
     USER_MONAD = 21
     USER_DYAD = 22
     USER_TRIAD = 23
-    USER_NILAD = 24
     ERROR = 26
+    EXPRESSION = 28
 
 class SymbolType(Enum):
     i = 200
@@ -255,6 +264,106 @@ class Storage:
 
     # times: delegated to subclass
 
+    @staticmethod
+    def apply_builtin_monad(i, f):
+        return Noun.dispatchMonad(i, f)
+
+    @staticmethod
+    def apply_user_monad(i, f):
+        reduction = Storage.reduceMonad(i, f)
+        return Storage.evaluate(reduction)
+
+    @staticmethod
+    def apply_monad_expression(i, f):
+        evaluated = Storage.evaluate(i)
+        return evaluated.apply(f)
+
+    @staticmethod
+    def apply_builtin_dyad(i, f, x):
+        return Noun.dispatchDyad(i, f, x)
+
+    @staticmethod
+    def apply_user_dyad(i, f, x):
+        reduction = Storage.reduceDyad(i, f, x)
+        return Storage.evaluate(reduction)
+
+    @staticmethod
+    def apply_dyad_expression(i, f, x):
+        evaluated = Storage.evaluate(i)
+        return evaluated.apply(f, x)
+
+    @staticmethod
+    def reduceMonad(i, f):
+        return Storage.reduce_monad_expression(f, i, f)
+
+    @staticmethod
+    def reduceDyad(i, f, x):
+        return Storage.reduce_dyad_expression(f, i, f, x)
+
+    @staticmethod
+    def reduce_monad_expression(e, i, f):
+        results = []
+        for y in e.i:
+            if y.o == NounType.BUILTIN_SYMBOL:
+                if y.equal(SymbolType.i.symbol()) == Word.true():
+                    results.append(i)
+                elif y.equal(SymbolType.f.symbol()) == Word.true():
+                    results.append(f)
+                else:
+                    return error.Error.invalid_argument()
+            elif y.o == NounType.EXPRESSION:
+                reduced = Storage.reduce_monad_expression(y, i, f)
+                results.append(reduced)
+            else:
+                results.append(y)
+        return MixedArray(results, o=NounType.EXPRESSION)
+
+    @staticmethod
+    def reduce_dyad_expression(e, i, f, x):
+        results = []
+        for y in e.i:
+            if y.o == NounType.BUILTIN_SYMBOL:
+                if y.equal(SymbolType.i.symbol()) == Word.true():
+                    results.append(i)
+                elif y.equal(SymbolType.x.symbol()) == Word.true():
+                    results.append(f, x)
+                elif y.equal(SymbolType.f.symbol()) == Word.true():
+                    results.append(f)
+                else:
+                    return error.Error.invalid_argument()
+            elif y.o == NounType.EXPRESSION:
+                reduced = Storage.reduce_dyad_expression(y, i, f, x)
+                results.append(reduced)
+            else:
+                results.append(y)
+        return MixedArray(results, o=NounType.EXPRESSION)
+
+    @staticmethod
+    def evaluate_impl(e):
+        if len(e.i) == 0:
+            return error.Error.empty_argument()
+
+        i = e.i[0]
+        f = e.i[1]
+
+        if f.o == NounType.BUILTIN_MONAD:
+            rest = e.i[2:]
+            result = Noun.dispatchMonad(i, f)
+            if len(rest) == 0:
+                return result
+            else:
+                next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
+                return next_e.evaluate()
+        elif f.o == NounType.BUILTIN_DYAD:
+            x = e.i[2]
+            rest = e.i[3:]
+            result = Noun.dispatchDyad(i, f, x)
+            if len(rest) == 0:
+                return result
+            else:
+                next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
+                return next_e.evaluate()
+
     # Monadic adverbs
 
     @staticmethod
@@ -391,6 +500,15 @@ class Storage:
 
     def __hash__(self):
         return hash(self.i)
+
+    def apply(self, f, x=None):
+        if x is None:
+            return Noun.dispatchDyad(self, Dyads.apply.symbol(), f)
+        else:
+            return Noun.dispatchTriad(self, Triads.apply.symbol(), f, x)
+
+    def evaluate(self):
+        return Noun.dispatchMonad(self, Monads.evaluate.symbol())
 
     # Monads
     def atom(self):
@@ -4807,16 +4925,16 @@ class MixedArray(Storage):
 
     # whileOne: Storage.whileOne_impl
 
-    def apply(self, x, rop):
-        results = []
-        for y in self.i:
-            result = rop(x, y)
-            if result.o == NounType.ERROR:
-                return result
-            else:
-                results.append(result)
-
-        return MixedArray(results)
+    # def apply(self, x, rop):
+    #     results = []
+    #     for y in self.i:
+    #         result = rop(x, y)
+    #         if result.o == NounType.ERROR:
+    #             return result
+    #         else:
+    #             results.append(result)
+    #
+    #     return MixedArray(results)
 
     # def iterate(self, f, x):
     #     if x.t == StorageType.WORD:

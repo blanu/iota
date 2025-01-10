@@ -1,5 +1,5 @@
 import noun
-from storage import NounType, SymbolType, WordArray, MixedArray
+from storage import NounType, SymbolType, Word, WordArray, MixedArray, Dyads, Triads
 from utils import *
 
 # atom: Word.true
@@ -144,6 +144,31 @@ def scanOver_impl(i, f):
 
 # whileOne: Storage.whileOne
 
+class MetaExpression(noun.MetaNoun, type):
+    def __new__(cls, name, bases, dct):
+        obj = super().__new__(cls, name, bases, dct)
+
+        noun.Noun.dispatch[(NounType.EXPRESSION, storage.StorageType.MIXED_ARRAY)] = {
+            storage.Monads.evaluate: storage.Storage.evaluate_impl,
+
+            Dyads.apply: {
+                (storage.NounType.BUILTIN_MONAD, storage.StorageType.WORD): storage.Storage.apply_monad_expression,
+                (storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_monad_expression,
+            },
+
+            Triads.apply: {
+                (storage.NounType.BUILTIN_DYAD, storage.StorageType.WORD): storage.Storage.apply_dyad_expression,
+                (storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_dyad_expression,
+            },
+        }
+
+        return obj
+
+class Expression(noun.Noun, metaclass=MetaExpression):
+    @staticmethod
+    def new(i):
+        return MixedArray(i, o=NounType.EXPRESSION)
+
 class MetaFunction(noun.MetaNoun, type):
     def __new__(cls, name, bases, dct):
         obj = super().__new__(cls, name, bases, dct)
@@ -202,7 +227,7 @@ class MetaFunction(noun.MetaNoun, type):
                 (storage.NounType.DICTIONARY, storage.StorageType.WORD_ARRAY): storage.Word.false,
                 (storage.NounType.CHARACTER, storage.StorageType.WORD): storage.Word.false,
                 (storage.NounType.STRING, storage.StorageType.WORD_ARRAY): storage.Word.false,
-                (storage.NounType.USER_NILAD, storage.StorageType.WORD_ARRAY): match_function,
+                # (storage.NounType.EXPRESSION, storage.StorageType.WORD_ARRAY): match_function,
                 (storage.NounType.USER_MONAD, storage.StorageType.WORD_ARRAY): match_function,
                 (storage.NounType.USER_DYAD, storage.StorageType.WORD_ARRAY): match_function,
                 (storage.NounType.USER_TRIAD, storage.StorageType.WORD_ARRAY): match_function,
@@ -243,7 +268,7 @@ class MetaFunction(noun.MetaNoun, type):
                 (storage.NounType.BUILTIN_SYMBOL, storage.StorageType.WORD): storage.Storage.whileOne_impl,
             }
         }
-        noun.Noun.dispatch[(storage.NounType.USER_NILAD, storage.StorageType.MIXED_ARRAY)] = dispatch_table
+        # noun.Noun.dispatch[(storage.NounType.EXPRESSION, storage.StorageType.MIXED_ARRAY)] = dispatch_table
         noun.Noun.dispatch[(storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY)] = dispatch_table
         noun.Noun.dispatch[(storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY)] = dispatch_table
         noun.Noun.dispatch[(storage.NounType.USER_TRIAD, storage.StorageType.MIXED_ARRAY)] = dispatch_table
@@ -253,22 +278,22 @@ class MetaFunction(noun.MetaNoun, type):
 class Function(noun.Noun, metaclass=MetaFunction):
     @staticmethod
     def new(i):
+        hasI = False
         hasX = False
         hasY = False
-        hasZ = False
         for y in i:
             if y.o == NounType.BUILTIN_SYMBOL:
-                if y.i == SymbolType.x:
+                if y.equal(SymbolType.i.symbol()) == Word.true():
+                    hasI = True
+                if y.equal(SymbolType.x.symbol()) == Word.true():
                     hasX = True
-                elif y.i == SymbolType.y:
+                if y.equal(SymbolType.y.symbol()) == Word.true():
                     hasY = True
-                elif y.i == SymbolType.z:
-                    hasZ = True
-        if hasZ:
+        if hasY:
             return storage.MixedArray(i, storage.NounType.USER_TRIAD)
-        elif hasY:
-            return storage.MixedArray(i, storage.NounType.USER_DYAD)
         elif hasX:
+            return storage.MixedArray(i, storage.NounType.USER_DYAD)
+        elif hasI:
             return storage.MixedArray(i, storage.NounType.USER_MONAD)
         else:
-            return storage.MixedArray(i, storage.NounType.USER_NILAD)
+            return storage.MixedArray(i, storage.NounType.EXPRESSION)

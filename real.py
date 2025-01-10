@@ -79,6 +79,16 @@ class MetaReal(MetaNoun, type):
             # Dyads.take unsupported
             Dyads.times: match_dispatch(Float.times_word, Float.times_float, Float.times_words, Float.times_floats, Float.times_mixed),
 
+            Dyads.apply: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.apply_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.apply_user_monad,
+            },
+
+            Triads.apply: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.apply_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.apply_user_dyad,
+            },
+
             # Monadic Adverbs
             Adverbs.converge: Storage.converge_impl,
             Adverbs.each: Storage.each_scalar,

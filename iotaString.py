@@ -411,6 +411,16 @@ class MetaString(MetaNoun, type):
             },
             # Dyads.times: unsupported
 
+            Dyads.apply: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.apply_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.apply_user_monad,
+            },
+
+            Triads.apply: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.apply_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.apply_user_dyad,
+            },
+
             # Monadic Adverbs
             Adverbs.converge: Storage.converge_impl,
             Adverbs.each: each_impl,

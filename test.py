@@ -2,6 +2,7 @@ from storage import *
 from nouns import *
 from testify import TestCase, assert_not_equal, assert_equal
 from squeeze import squeeze, expand
+from function import Function, Expression
 
 # Examples from the book "An Introduction to Array Programming in Klong" by Nils
 class BookTests(TestCase):
@@ -2208,6 +2209,14 @@ class AdverbTests(TestCase):
         assert_equal(MixedArray([Word(1), Float(2), Word(3)]).scanIterating(Monads.shape.symbol(), Word(2)), MixedArray([MixedArray([Word(1), Float(2), Word(3)]), WordArray([3]), WordArray([1])]))
         assert_equal(MixedArray([Word(1), Float(2), Word(3)]).scanIterating(Monads.shape.symbol(), Word(-2)).o, NounType.ERROR)
         assert_equal(MixedArray([Word(1), Float(2), Word(3)]).scanIterating(Monads.shape.symbol(), Float(2)).o, NounType.ERROR)
+
+    def test_apply(self):
+        assert_equal(Integer.new(1).apply(Monads.negate.symbol()), Integer.new(-1))
+        assert_equal(Integer.new(1).apply(Dyads.plus.symbol(), Integer.new(1)), Integer.new(2))
+        assert_equal(Integer.new(1).apply(Function.new([SymbolType.i.symbol(), Monads.negate.symbol()])), Integer.new(-1))
+        assert_equal(Integer.new(1).apply(Function.new([SymbolType.i.symbol(), Dyads.plus.symbol(), Integer.new(1)])), Integer.new(2))
+        assert_equal(Expression.new([Integer.new(1), Dyads.plus.symbol(), Integer.new(1)]).apply(Monads.negate.symbol()), Integer.new(-2))
+        assert_equal(Expression.new([Integer.new(1), Dyads.plus.symbol(), Integer.new(1)]).apply(Function.new([SymbolType.i.symbol(), Dyads.plus.symbol(), Integer.new(1)])), Integer.new(3))
 
 if __name__ == "__main__":
     # Run tests when executed
