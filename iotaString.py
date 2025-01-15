@@ -1,6 +1,9 @@
 from storage import *
 from noun import Noun, MetaNoun
-import character
+from utils import *
+
+def truth_impl(i):
+    return i.erase().truth()
 
 # atom: Storage.atom_list
 
@@ -15,12 +18,7 @@ import character
 # expand: unimplemented FIXME
 
 def first_impl(i):
-    untyped = WordArray(i.i)
-    untypedResult = untyped.first()
-    if untypedResult.o == NounType.ERROR:
-        return untypedResult
-
-    return character.Character.new(untypedResult.i)
+    i.erase().first().retype(NounType.CHARACTER.symbol())
 
 # floor: Storage.identity,
 
@@ -37,9 +35,7 @@ def first_impl(i):
 # reciprocal: unsupported
 
 def reverse_impl(i):
-    untyped = WordArray(i.i)
-    untypedResult = untyped.reverse()
-    return String.new(untypedResult)
+    return i.erase().reverse().retype(NounType.STRING.symbol())
 
 # shape: WordArray.shape_impl
 
@@ -48,43 +44,27 @@ def reverse_impl(i):
 # transpose: Storage.identity
 
 def unique_impl(i):
-    untyped = WordArray(i.i)
-    untypedResult = untyped.unique()
-    return String.new(untypedResult)
+    return i.erase().unique().retype(NounType.STRING.symbol())
 
 # Dyads
 
 # amend: unimplemented FIXME
 
 def cut_impl(i, x):
-    untyped = WordArray(i.i)
-    untypedResult = untyped.cut(x)
-    if untypedResult.o == NounType.ERROR:
-        return untypedResult
-    else:
-        return MixedArray([String.new(y) for y in untypedResult.i])
+    return i.erase().cut(x).each(Dyads.retype.symbol(), NounType.STRING.symbol())
 
 # divide: unsupported
 
 def drop_word(i, x):
-    untyped = WordArray(i.i)
-    untypedResult = untyped.drop(x)
-    if untypedResult.o == NounType.ERROR:
-        return untypedResult
-    else:
-        return String.new(untypedResult.i)
+    return i.erase().drop(x).retype(NounType.STRING.symbol())
 # drop float, words, floats, mixed: unsupported
 
 # equal word, float, words, floats, mixed: Word.false
 def equal_string(i, x):
-    ui = WordArray(i.i)
-    ux = WordArray(x.i)
-    return ui.equal(ux)
+    return i.erase().equal(x.erase())
 
 def find_character(i, x):
-    ui = WordArray(i.i)
-    ux = Word(x.i)
-    return ui.find(ux)
+    return i.erase().find(x.erase())
 
 # unimplemented FIXME
 def find_string(i, x):
@@ -95,43 +75,34 @@ def find_string(i, x):
 # format2: unimplemented FIXME
 
 def index_impl(i, x):
-    untyped = WordArray(i.i)
-    untypedResult = untyped.index(x)
-    if untypedResult.o == NounType.ERROR:
-        return untypedResult
-    else:
-        return String.new(untypedResult.i)
+    return i.erase().index(x.erase()).retype(NounType.STRING.symbol())
 
 # indexInDepth: unimplemented FIXME
 
 # integerDivide: unsupported
 
 def join_toList(i, x):
-    return MixedArray([i, x])
+    return i.enclose().join(x.enclose())
 
 def join_character(i, x):
-    return String.new(i.i + [x.i])
+    return i.join(x.enclose().retype(NounType.STRING.symbol()))
 
 def join_string(i, x):
-    return String.new(i.i + x.i)
+    return i.erase().join(x.erase()).retype(NounType.STRING.symbol())
 
 # FIXME
 def join_dictionary(i, x):
     pass
 
 def less_string(i, x):
-    ui = WordArray(i.i)
-    ux = WordArray(x.i)
-    return ui.less(ux)
+    return i.erase().less(x.erase())
 
 # FIXME
 def match_mixed(i, x):
     pass
 
 def match_string(i, x):
-    ui = WordArray(i.i)
-    ux = WordArray(x.i)
-    return ui.match(ux)
+    return i.erase().match(x.erase())
 
 # Dyads.max: unsupported
 
@@ -140,29 +111,20 @@ def match_string(i, x):
 # Dyads.minus: unsupported
 
 def more_string(i, x):
-    ui = WordArray(i.i)
-    ux = WordArray(x.i)
-    return ui.more(ux)
+    return i.erase().more(x.erase())
 
 # FIXME Dyads.reshape unimplemented
 
 # Dyads.remainder: unsupported
 
 def rotate_word(i, x):
-    ui = WordArray(i.i)
-    ux = Word(x.i)
-    ur = ui.rotate(ux)
-    return String.new(ur.i)
+    return i.erase().rotate(x.erase()).retype(NounType.STRING.symbol())
 
 def split_impl(i, x):
-    ui = WordArray(i.i)
-    ur = ui.split(x)
-    return MixedArray([String.new(y) for y in ur.i])
+    return i.erase().split(x).each(Dyads.retype.symbol(), NounType.STRING.symbol())
 
 def take_impl(i, x):
-    ui = WordArray(i.i)
-    ur = ui.take(x)
-    return String.new(ur.i)
+    return i.erase().take(x).retype(NounType.STRING.symbol())
 
 # times: unsupported
 
@@ -171,14 +133,14 @@ def take_impl(i, x):
 # Adverbs.converge: Storage.converge_impl,
 
 def each_impl(i, f):
-    return MixedArray([Noun.dispatchMonad(character.Character.new(y), f) for y in i.i])
+    return MixedArray([Noun.dispatchMonad(Word(y, o=NounType.CHARACTER), f) for y in i.i])
 
 def eachPair_impl(i, f):
     results = []
     for index, y in enumerate(i.i):
         if index != len(i.i) - 1:
             z = i.i[index + 1]
-            results.append(Noun.dispatchDyad(character.Character.new(y), f, Word(z)))
+            results.append(Noun.dispatchDyad(Word(y, o=NounType.CHARACTER), f, Word(z)))
     return MixedArray(results)
 
 
@@ -191,9 +153,9 @@ def over_impl(i, f):
         accumulator = 0
         for index, y in enumerate(i.i):
             if index == 0:
-                accumulator = character.Character.new(y)
+                accumulator = Word(y, o=NounType.CHARACTER)
             else:
-                accumulator = Noun.dispatchDyad(accumulator, f, character.Character.new(y))
+                accumulator = Noun.dispatchDyad(accumulator, f, Word(y, o=NounType.CHARACTER))
         return accumulator
 
 
@@ -203,44 +165,44 @@ def scanOver_impl(i, f):
     if len(i.i) == 0:
         return String.new([])
     else:
-        current = character.Character.new(i.i[0])
+        current = Word(i.i[0], o=NounType.CHARACTER)
         rest = i.i[1:]
         results = [current]
         for y in rest:
-            current = Noun.dispatchDyad(current, f, character.Character.new(y))
+            current = Noun.dispatchDyad(current, f, Word(y, o=NounType.CHARACTER))
             results.append(current)
         return MixedArray(results)
 
 # Dyadic adverbs
 
 def each2_scalar(i, f, x):
-    return MixedArray([Noun.dispatchDyad(character.Character.new(y), f, x) for y in i.i])
+    return MixedArray([Noun.dispatchDyad(Word(y, o=NounType.CHARACTER), f, x) for y in i.i])
 
 def each2_words(i, f, x):
     results = []
     #FIXME - make this work for arrays on unequal lengths
-    for y, z in zip([character.Character.new(y) for y in i.i], [Word(z) for z in x.i]):
+    for y, z in zip([Word(y, o=NounType.CHARACTER) for y in i.i], [Word(z) for z in x.i]):
         results.append(Noun.dispatchDyad(y, f, z))
     return MixedArray(results)
 
 def each2_floats(i, f, x):
     results = []
     #FIXME - make this work for arrays on unequal lengths
-    for y, z in zip([character.Character.new(y) for y in i.i], [Float(z) for z in x.i]):
+    for y, z in zip([Word(y, o=NounType.CHARACTER) for y in i.i], [Float(z) for z in x.i]):
         results.append(Noun.dispatchDyad(y, f, z))
     return MixedArray(results)
 
 def each2_mixed(i, f, x):
     results = []
     #FIXME - make this work for arrays on unequal lengths
-    for y, z in zip([character.Character.new(y) for y in i.i], [z for z in x.i]):
+    for y, z in zip([Word(y, o=NounType.CHARACTER) for y in i.i], [z for z in x.i]):
         results.append(Noun.dispatchDyad(y, f, z))
     return MixedArray(results)
 
 def each2_string(i, f, x):
     results = []
     #FIXME - make this work for arrays on unequal lengths
-    for y, z in zip([character.Character.new(y) for y in i.i], [character.Character.new(z) for z in x.i]):
+    for y, z in zip([Word(y, o=NounType.CHARACTER) for y in i.i], [Word(z, o=NounType.CHARACTER) for z in x.i]):
         results.append(Noun.dispatchDyad(y, f, z))
     return MixedArray(results)
 
@@ -250,7 +212,7 @@ def each2_string(i, f, x):
 # eachLeft floats: Storage.eachLeft_floats
 # eachLeft mixed: Storage.eachLeft_mixed
 def eachLeft_string(i, f, x):
-    return MixedArray([Noun.dispatchDyad(i, f, character.Character.new(y)) for y in x.i])
+    return MixedArray([Noun.dispatchDyad(i, f, Word(y, o=NounType.CHARACTER)) for y in x.i])
 
 # eachRight word: Storage.eachRight_scalar
 # eachRight float: Storage.eachRight_scalar
@@ -258,7 +220,7 @@ def eachLeft_string(i, f, x):
 # eachRight floats: Storage.eachRight_floats
 # eachRight mixed: Storage.eachRight_mixed
 def eachRight_string(i, f, x):
-    return MixedArray([Noun.dispatchDyad(character.Character.new(y), f, i) for y in x.i])
+    return MixedArray([Noun.dispatchDyad(Word(y, o=NounType.CHARACTER), f, i) for y in x.i])
 
 def overNeutral_impl(i, f, x):
     if len(i.i) == 0:
@@ -266,7 +228,7 @@ def overNeutral_impl(i, f, x):
     else:
         accumulator = x
         for index, y in enumerate(i.i):
-            accumulator = Noun.dispatchDyad(accumulator, f, character.Character.new(y))
+            accumulator = Noun.dispatchDyad(accumulator, f, Word(y, o=NounType.CHARACTER))
         return accumulator
 
 # iterate: Storage.iterate_word
@@ -277,7 +239,7 @@ def scanOverNeutral_impl(i, f, x):
     current = x
     results = [current]
     for y in i.i:
-        current = Noun.dispatchDyad(current, f, character.Character.new(y))
+        current = Noun.dispatchDyad(current, f, Word(y, o=NounType.CHARACTER))
         results.append(current)
     return MixedArray(results)
 
@@ -411,88 +373,71 @@ class MetaString(MetaNoun, type):
             },
             # Dyads.times: unsupported
 
-            Dyads.apply: {
-                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.apply_builtin_monad,
-                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.apply_user_monad,
+            # Extension Monads
+
+            Monads.erase: WordArray.erase_impl,
+            Monads.truth: truth_impl,
+
+            # Extension Dyads
+
+            Dyads.applyMonad: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.applyMonad_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.applyMonad_user_monad,
             },
 
-            Triads.apply: {
-                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.apply_builtin_dyad,
-                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.apply_user_dyad,
+            Dyads.retype: {
+                (NounType.TYPE, StorageType.WORD): WordArray.retype_impl
+            },
+
+            # Extension Triads
+
+            Triads.applyDyad: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.applyDyad_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.applyDyad_user_dyad,
+            },
+
+            Dyads.applyMonad: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.applyMonad_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.applyMonad_user_monad,
+            },
+
+            Triads.applyDyad: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.applyDyad_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.applyDyad_user_dyad,
             },
 
             # Monadic Adverbs
-            Adverbs.converge: Storage.converge_impl,
-            Adverbs.each: each_impl,
-            Adverbs.eachPair: eachPair_impl,
-            Adverbs.over: over_impl,
-            Adverbs.scanConverging: Storage.scanConverging_impl,
-            Adverbs.scanOver: scanOver_impl,
+            MonadicAdverbs.converge: Storage.converge_impl,
+            MonadicAdverbs.each: each_impl,
+            MonadicAdverbs.eachPair: eachPair_impl,
+            MonadicAdverbs.over: over_impl,
+            MonadicAdverbs.scanConverging: Storage.scanConverging_impl,
+            MonadicAdverbs.scanOver: scanOver_impl,
 
             # Dyadic Adverbs
-            Adverbs.each2: {
-                (NounType.INTEGER, StorageType.WORD): each2_scalar,
-                (NounType.REAL, StorageType.FLOAT): each2_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): each2_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): each2_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): each2_mixed,
-                (NounType.CHARACTER, StorageType.WORD): each2_scalar,
-                (NounType.STRING, StorageType.WORD_ARRAY): each2_string,
-            },
-            Adverbs.eachLeft: {
-                (NounType.INTEGER, StorageType.WORD): Storage.eachLeft_scalar,
-                (NounType.REAL, StorageType.FLOAT): Storage.eachLeft_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachLeft_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachLeft_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachLeft_mixed,
-                (NounType.CHARACTER, StorageType.WORD): Storage.eachLeft_scalar,
-                (NounType.STRING, StorageType.WORD_ARRAY): eachLeft_string,
-            },
-            Adverbs.eachRight: {
-                (NounType.INTEGER, StorageType.WORD): Storage.eachRight_scalar,
-                (NounType.REAL, StorageType.FLOAT): Storage.eachRight_scalar,
-                (NounType.LIST, StorageType.WORD_ARRAY): Storage.eachRight_words,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): Storage.eachRight_floats,
-                (NounType.LIST, StorageType.MIXED_ARRAY): Storage.eachRight_mixed,
-                (NounType.CHARACTER, StorageType.WORD): Storage.eachRight_scalar,
-                (NounType.STRING, StorageType.WORD_ARRAY): eachRight_string,
-            },
-            Adverbs.overNeutral: {
-                (NounType.INTEGER, StorageType.WORD): overNeutral_impl,
-                (NounType.REAL, StorageType.FLOAT): overNeutral_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): overNeutral_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): overNeutral_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): overNeutral_impl,
-                (NounType.CHARACTER, StorageType.WORD): overNeutral_impl,
-                (NounType.STRING, StorageType.WORD_ARRAY): overNeutral_impl,
-            },
-            Adverbs.iterate: {
+            DyadicAdverbs.each2: match_dispatch_dictionary_string(each2_scalar, each2_scalar, each2_words, each2_floats, each2_mixed, each2_scalar, each2_string),
+            DyadicAdverbs.eachLeft: match_dispatch_dictionary_string(Storage.eachLeft_scalar, Storage.eachLeft_scalar, Storage.eachLeft_words, Storage.eachLeft_floats, Storage.eachLeft_mixed, Storage.eachLeft_scalar, eachLeft_string),
+            DyadicAdverbs.eachRight: match_dispatch_dictionary_string(Storage.eachRight_scalar, Storage.eachRight_scalar, Storage.eachRight_words, Storage.eachRight_floats, Storage.eachRight_mixed, Storage.eachRight_scalar, eachRight_string),
+            DyadicAdverbs.overNeutral: expand_dispatch_character_string(overNeutral_impl),
+            DyadicAdverbs.iterate: {
                 (NounType.INTEGER, StorageType.WORD): Storage.iterate_word,
                 # (NounType.REAL, StorageType.FLOAT): unsupported
                 # (NounType.LIST, StorageType.WORD_ARRAY): unsupported
                 # (NounType.LIST, StorageType.FLOAT_ARRAY): unsupported
                 # (NounType.LIST, StorageType.MIXED_ARRAY): unsupported
             },
-            Adverbs.scanIterating: {
+            DyadicAdverbs.scanIterating: {
                 (NounType.INTEGER, StorageType.WORD): Storage.scanIterating_word,
                 # (NounType.REAL, StorageType.FLOAT): unsupported
                 # (NounType.LIST, StorageType.WORD_ARRAY): unsupported
                 # (NounType.LIST, StorageType.FLOAT_ARRAY): unsupported
                 # (NounType.LIST, StorageType.MIXED_ARRAY): unsupported
             },
-            Adverbs.scanOverNeutral: {
-                (NounType.INTEGER, StorageType.WORD): scanOverNeutral_impl,
-                (NounType.REAL, StorageType.FLOAT): scanOverNeutral_impl,
-                (NounType.LIST, StorageType.WORD_ARRAY): scanOverNeutral_impl,
-                (NounType.LIST, StorageType.FLOAT_ARRAY): scanOverNeutral_impl,
-                (NounType.LIST, StorageType.MIXED_ARRAY): scanOverNeutral_impl,
-                (NounType.CHARACTER, StorageType.WORD): scanOverNeutral_impl,
-                (NounType.STRING, StorageType.WORD_ARRAY): scanOverNeutral_impl,
-            },
-            Adverbs.scanWhileOne: {
+            DyadicAdverbs.scanOverNeutral: expand_dispatch_character_string(scanOverNeutral_impl),
+            DyadicAdverbs.scanWhileOne: {
                 (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
-            Adverbs.whileOne: {
+            DyadicAdverbs.whileOne: {
                 (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
@@ -508,5 +453,5 @@ class String(Noun, metaclass=MetaString):
     def new(i: [int]):
         for y in i:
             if not type(y) is int:
-                return error.Error.unsupported_object()
+                return Word(error.ErrorTypes.BAD_INITIALIZATION, o=NounType.ERROR)
         return WordArray(i, NounType.STRING)

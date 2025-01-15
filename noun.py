@@ -14,22 +14,23 @@ class MetaNoun(type):
 class Noun(metaclass=MetaNoun):
     @staticmethod
     def dispatchMonad(i, f):
+        d = Noun.dispatch
         if i.o == storage.NounType.ERROR:
             return i
 
         if f.t == storage.StorageType.WORD:
             monad = storage.Monads(f.i)
             if not monad:
-                return error.Error.bad_operation()
+                return storage.Word(error.ErrorTypes.BAD_OPERATION, o=storage.NounType.ERROR)
         else:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION, o=storage.NounType.ERROR)
 
         if not (i.o, i.t) in Noun.dispatch:
-            return error.Error.unsupported_object()
+            return storage.Word(error.ErrorTypes.UNSUPPORTED_OBJECT.value, o=storage.NounType.ERROR)
 
         verbs = Noun.dispatch[(i.o, i.t)]
         if not monad in verbs:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         verb = verbs[monad]
         return verb(i)
@@ -42,20 +43,20 @@ class Noun(metaclass=MetaNoun):
         if f.t == storage.StorageType.WORD:
             dyad = storage.Dyads(f.i)
             if not dyad:
-                return error.Error.bad_operation()
+                return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
         else:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         if not (i.o, i.t) in Noun.dispatch:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         verbs = Noun.dispatch[(i.o, i.t)]
         if not dyad in verbs:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         verb = verbs[dyad]
         if not (x.o, x.t) in verb:
-            return error.Error.invalid_argument()
+            return storage.Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=storage.NounType.ERROR)
 
         specialization = verb[(x.o, x.t)]
         return specialization(i, x)
@@ -68,44 +69,43 @@ class Noun(metaclass=MetaNoun):
         if f.t == storage.StorageType.WORD:
             triad = storage.Triads(f.i)
             if not triad:
-                return error.Error.bad_operation()
+                return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
         else:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         if not (i.o, i.t) in Noun.dispatch:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         verbs = Noun.dispatch[(i.o, i.t)]
         if not triad in verbs:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         verb = verbs[triad]
         if not (x.o, x.t) in verb:
-            return error.Error.invalid_argument()
+            return storage.Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=storage.NounType.ERROR)
 
         specialization = verb[(x.o, x.t)]
         return specialization(i, x, y)
 
     @staticmethod
     def dispatchMonadicAdverb(i, f, g):
-        d = Noun.dispatch
         if i.o == storage.NounType.ERROR:
             return i
 
         if f.t == storage.StorageType.WORD:
-            symbol = storage.Adverbs(f.i)
+            symbol = storage.MonadicAdverbs(f.i)
             if not symbol:
-                return error.Error.bad_operation()
+                return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
         else:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         if not (i.o, i.t) in Noun.dispatch:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         adverbs = Noun.dispatch[(i.o, i.t)]
 
         if not symbol in adverbs:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
         adverb = adverbs[symbol]
         return adverb(i, g)
 
@@ -115,23 +115,23 @@ class Noun(metaclass=MetaNoun):
             return i
 
         if f.t == storage.StorageType.WORD:
-            symbol = storage.Adverbs(f.i)
+            symbol = storage.DyadicAdverbs(f.i)
             if not symbol:
-                return error.Error.bad_operation()
+                return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
         else:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         if not (i.o, i.t) in Noun.dispatch:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         adverbs = Noun.dispatch[(i.o, i.t)]
         if not symbol in adverbs:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         adverb = adverbs[symbol]
 
         if not (x.o, x.t) in adverb:
-            return error.Error.bad_operation()
+            return storage.Word(error.ErrorTypes.BAD_OPERATION.value, o=storage.NounType.ERROR)
 
         specialization = adverb[(x.o, x.t)]
         return specialization(i, g, x)

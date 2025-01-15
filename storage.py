@@ -11,9 +11,9 @@ class Monads(Enum):
     complementation = 2
     enclose = 3
     enumerate = 4
-    first = 6
-    floor = 7
-    format = 19
+    first = 5
+    floor = 6
+    format = 7
     gradeDown = 8
     gradeUp = 9
     group = 10
@@ -27,6 +27,8 @@ class Monads(Enum):
     count = 18
 
     evaluate = 19
+    erase = 20
+    truth = 21
 
     def symbol(self):
         return Word(self.value, o=NounType.BUILTIN_MONAD)
@@ -60,36 +62,42 @@ class Dyads(Enum):
     take = 139
     times = 140
 
-    apply = 145
+    applyMonad = 145
+    retype = 146
 
     def symbol(self):
         return Word(self.value, o=NounType.BUILTIN_DYAD)
 
 class Triads(Enum):
-    apply = 300
+    applyDyad = 300
 
     def symbol(self):
         return Word(self.value, o=NounType.BUILTIN_TRIAD)
 
-class Adverbs(Enum):
+class MonadicAdverbs(Enum):
+    converge = 48
     each = 41
+    eachPair = 45
+    over = 46
+    scanConverging = 53
+    scanOver = 51
+
+    def symbol(self):
+        return Word(self.value, o=NounType.MONADIC_ADVERB)
+
+class DyadicAdverbs(Enum):
     each2 = 42
     eachLeft = 43
     eachRight = 44
-    eachPair = 45
-    over = 46
     overNeutral = 47
-    converge = 48
     whileOne = 49
     iterate = 50
-    scanOver = 51
     scanOverNeutral = 52
-    scanConverging = 53
     scanWhileOne = 54
     scanIterating = 55
 
     def symbol(self):
-        return Word(self.value, o=NounType.ADVERB)
+        return Word(self.value, o=NounType.DYADIC_ADVERB)
 
 class StorageType(Enum):
     WORD = 0
@@ -109,13 +117,19 @@ class NounType(Enum):
     BUILTIN_MONAD = 17
     BUILTIN_DYAD = 18
     BUILTIN_TRIAD = 19
-    ADVERB = 20
+    MONADIC_ADVERB = 20
+    DYADIC_ADVERB = 31
     USER_SYMBOL = 27
     USER_MONAD = 21
     USER_DYAD = 22
     USER_TRIAD = 23
     ERROR = 26
     EXPRESSION = 28
+    TYPE = 29
+    CONDITIONAL = 30
+
+    def symbol(self):
+        return Word(self.value, o=NounType.TYPE)
 
 class SymbolType(Enum):
     i = 200
@@ -265,32 +279,32 @@ class Storage:
     # times: delegated to subclass
 
     @staticmethod
-    def apply_builtin_monad(i, f):
+    def applyMonad_builtin_monad(i, f):
         return Noun.dispatchMonad(i, f)
 
     @staticmethod
-    def apply_user_monad(i, f):
+    def applyMonad_user_monad(i, f):
         reduction = Storage.reduceMonad(i, f)
         return Storage.evaluate(reduction)
 
     @staticmethod
-    def apply_monad_expression(i, f):
+    def applyMonad_expression(i, f):
         evaluated = Storage.evaluate(i)
-        return evaluated.apply(f)
+        return evaluated.applyMonad(f)
 
     @staticmethod
-    def apply_builtin_dyad(i, f, x):
+    def applyDyad_builtin_dyad(i, f, x):
         return Noun.dispatchDyad(i, f, x)
 
     @staticmethod
-    def apply_user_dyad(i, f, x):
+    def applyDyad_user_dyad(i, f, x):
         reduction = Storage.reduceDyad(i, f, x)
         return Storage.evaluate(reduction)
 
     @staticmethod
-    def apply_dyad_expression(i, f, x):
+    def applyDyad_expression(i, f, x):
         evaluated = Storage.evaluate(i)
-        return evaluated.apply(f, x)
+        return evaluated.applyDyad(f, x)
 
     @staticmethod
     def reduceMonad(i, f):
@@ -310,7 +324,7 @@ class Storage:
                 elif y.equal(SymbolType.f.symbol()) == Word.true():
                     results.append(f)
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             elif y.o == NounType.EXPRESSION:
                 reduced = Storage.reduce_monad_expression(y, i, f)
                 results.append(reduced)
@@ -330,7 +344,7 @@ class Storage:
                 elif y.equal(SymbolType.f.symbol()) == Word.true():
                     results.append(f)
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             elif y.o == NounType.EXPRESSION:
                 reduced = Storage.reduce_dyad_expression(y, i, f, x)
                 results.append(reduced)
@@ -341,7 +355,7 @@ class Storage:
     @staticmethod
     def evaluate_impl(e):
         if len(e.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
 
         i = e.i[0]
         f = e.i[1]
@@ -363,6 +377,52 @@ class Storage:
             else:
                 next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
                 return next_e.evaluate()
+        elif f.o == NounType.BUILTIN_TRIAD:
+            x = e.i[2]
+            y = e.i[3]
+            rest = e.i[4:]
+            result = Noun.dispatchTriad(i, f, x, y)
+            if len(rest) == 0:
+                return result
+            else:
+                next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
+                return next_e.evaluate()
+        elif f.o == NounType.MONADIC_ADVERB:
+            g = e.i[2]
+            rest = e.i[3:]
+            if g.o == NounType.BUILTIN_MONAD:
+                result = Noun.dispatchMonadicAdverb(i, f, g)
+                if len(rest) == 0:
+                    return result
+                else:
+                    next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
+                    return next_e.evaluate()
+            elif g.o == NounType.BUILTIN_DYAD:
+                result = Noun.dispatchMonadicAdverb(i, f, g)
+                if len(rest) == 0:
+                    return result
+                else:
+                    next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
+                    return next_e.evaluate()
+            else:
+                return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+        elif f.o == NounType.DYADIC_ADVERB:
+            g = e.i[2]
+            x = e.i[3]
+            rest = e.i[4:]
+            result = Noun.dispatchDyadicAdverb(i, f, g, x)
+            if len(rest) == 0:
+                return result
+            else:
+                next_e = MixedArray([result] + rest, o=NounType.EXPRESSION)
+                return next_e.evaluate()
+
+    @staticmethod
+    def truth_list(i):
+        if len(i.i) == 0:
+            return Word.false()
+        else:
+            return Word.true()
 
     # Monadic adverbs
 
@@ -459,7 +519,7 @@ class Storage:
                 results.append(current)
             return MixedArray(results)
         else:
-            return error.Error.invalid_adverb_argument()
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
 
     # scanIterating: float, words, floats, mixed - unsupported
 
@@ -501,14 +561,29 @@ class Storage:
     def __hash__(self):
         return hash(self.i)
 
-    def apply(self, f, x=None):
-        if x is None:
-            return Noun.dispatchDyad(self, Dyads.apply.symbol(), f)
-        else:
-            return Noun.dispatchTriad(self, Triads.apply.symbol(), f, x)
+    # Extension Monads
 
     def evaluate(self):
         return Noun.dispatchMonad(self, Monads.evaluate.symbol())
+
+    def erase(self):
+        return Noun.dispatchMonad(self, Monads.erase.symbol())
+
+    def truth(self):
+        return Noun.dispatchMonad(self, Monads.truth.symbol())
+
+    # Extension Dyads
+
+    def applyMonad(self, f):
+        return Noun.dispatchDyad(self, Dyads.applyMonad.symbol(), f)
+
+    def retype(self, x):
+        return Noun.dispatchDyad(self, Dyads.retype.symbol(), x)
+
+    # Extension Triads
+
+    def applyDyad(self, f, x):
+        return Noun.dispatchTriad(self, Triads.applyDyad.symbol(), f, x)
 
     # Monads
     def atom(self):
@@ -649,52 +724,54 @@ class Storage:
 
     # Monadic Adverbs
     def converge(self, f):
-        return Noun.dispatchMonadicAdverb(self, Adverbs.converge.symbol(), f)
+        return Noun.dispatchMonadicAdverb(self, MonadicAdverbs.converge.symbol(), f)
 
     def each(self, f):
-        return Noun.dispatchMonadicAdverb(self, Adverbs.each.symbol(), f)
+        return Noun.dispatchMonadicAdverb(self, MonadicAdverbs.each.symbol(), f)
 
     def eachPair(self, f):
-        return Noun.dispatchMonadicAdverb(self, Adverbs.eachPair.symbol(), f)
+        return Noun.dispatchMonadicAdverb(self, MonadicAdverbs.eachPair.symbol(), f)
 
     def over(self, f):
-        return Noun.dispatchMonadicAdverb(self, Adverbs.over.symbol(), f)
+        return Noun.dispatchMonadicAdverb(self, MonadicAdverbs.over.symbol(), f)
 
     def scanConverging(self, f):
-        return Noun.dispatchMonadicAdverb(self, Adverbs.scanConverging.symbol(), f)
+        return Noun.dispatchMonadicAdverb(self, MonadicAdverbs.scanConverging.symbol(), f)
 
     def scanOver(self, f):
-        return Noun.dispatchMonadicAdverb(self, Adverbs.scanOver.symbol(), f)
+        return Noun.dispatchMonadicAdverb(self, MonadicAdverbs.scanOver.symbol(), f)
 
     # Dyadic Adverbs
     def each2(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.each2.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.each2.symbol(), f, x)
 
     def eachLeft(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.eachLeft.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.eachLeft.symbol(), f, x)
 
     def eachRight(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.eachRight.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.eachRight.symbol(), f, x)
 
     def overNeutral(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.overNeutral.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.overNeutral.symbol(), f, x)
 
     def iterate(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.iterate.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.iterate.symbol(), f, x)
 
     def scanIterating(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.scanIterating.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.scanIterating.symbol(), f, x)
 
     def scanOverNeutral(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.scanOverNeutral.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.scanOverNeutral.symbol(), f, x)
 
     def scanWhileOne(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.scanWhileOne.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.scanWhileOne.symbol(), f, x)
 
     def whileOne(self, f, x):
-        return Noun.dispatchDyadicAdverb(self, Adverbs.whileOne.symbol(), f, x)
+        return Noun.dispatchDyadicAdverb(self, DyadicAdverbs.whileOne.symbol(), f, x)
 
 class Word(Storage):
+    # Constructors
+
     @staticmethod
     def true(*discard):
         return Word(1)
@@ -710,6 +787,14 @@ class Word(Storage):
     @staticmethod
     def one(*discard):
         return Word(1)
+
+    @staticmethod
+    def new(i):
+        return Word(i)
+
+    @staticmethod
+    def new_as(i, o):
+        return Word(i, o=o)
 
     @staticmethod
     def from_bytes(data):
@@ -743,11 +828,32 @@ class Word(Storage):
 
         return lengthBytes + data
 
+    # Extension Monads
+
+    @staticmethod
+    def erase_impl(i):
+        return Word(i.i, o=NounType.INTEGER)
+
+    @staticmethod
+    def truth_impl(i):
+        if i.i == Word.false().i:
+            return Word.false()
+        else:
+            return Word.true()
+
+    # Extension Dyads
+
+    @staticmethod
+    def retype_impl(i, x):
+        return Word(i.i, o=x.i)
+
     # Monads
 
     # atom: Word.true
 
-    # char: hotpatched by character.py to avoid circular imports
+    @staticmethod
+    def char_impl(i):
+        return Word(i.i, o=NounType.CHARACTER)
 
     # complementation: Storage.complementation
 
@@ -794,25 +900,25 @@ class Word(Storage):
         try:
             return Float(float(self.i) / float(x.i))
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_float(self, x):
         try:
             return Float(float(self.i) / x.i)
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_words(self, x):
         try:
             return FloatArray([float(self.i) / float(y) for y in x.i])
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_floats(self, x):
         try:
             return FloatArray([float(self.i) / y for y in x.i])
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_mixed(self, x):
         results = []
@@ -868,19 +974,19 @@ class Word(Storage):
 
     def index_words(self, x):
         if self.i < 1 or self.i > len(x.i):
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             return Word(x.i[self.i - 1])
 
     def index_floats(self, x):
         if self.i < 1 or self.i > len(x.i):
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             return Float(x.i[self.i - 1])
 
     def index_mixed(self, x):
         if self.i < 1 or self.i > len(x.i):
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             return x.i[self.i - 1]
 
@@ -890,7 +996,7 @@ class Word(Storage):
         try:
             return Word(self.i // x.i)
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     # integerDivide float: unsupported
 
@@ -898,7 +1004,7 @@ class Word(Storage):
         try:
             return WordArray([self.i // y for y in x.i])
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     # integerDivide floats: unsupported
 
@@ -1199,6 +1305,24 @@ class Word(Storage):
     # whileOne: Storage.whileOne
 
 class Float(Storage):
+    # Constructors
+
+    @staticmethod
+    def one():
+        return Float(1)
+
+    @staticmethod
+    def zero():
+        return Float(0)
+
+    @staticmethod
+    def new(i):
+        return Float(i)
+
+    @staticmethod
+    def new_as(i, o):
+        return Float(i, o=o)
+
     @staticmethod
     def tolerance():
         return 1e-14
@@ -1234,6 +1358,25 @@ class Float(Storage):
         lengthBytes = squeeze(length)
 
         return lengthBytes + data
+
+    # Extension Monads
+
+    @staticmethod
+    def erase_impl(i):
+        return Word(i.i, o=NounType.REAL)
+
+    @staticmethod
+    def truth_impl(i):
+        if abs(i.i) < Float.tolerance():
+            return Word.false()
+        else:
+            return Word.true()
+
+    # Extension Dyads
+
+    @staticmethod
+    def retype_impl(i, x):
+        return Float(i.i, o=x.i)
 
     # Monads
 
@@ -1288,25 +1431,25 @@ class Float(Storage):
         try:
             return Float(self.i / float(x.i))
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_float(self, x):
         try:
             return Float(self.i / x.i)
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_words(self, x):
         try:
             return FloatArray([self.i / float(y) for y in x.i])
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_floats(self, x):
         try:
             return FloatArray([self.i / y for y in x.i])
         except ZeroDivisionError:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
 
     def divide_mixed(self, x):
         results = []
@@ -1660,6 +1803,32 @@ class Float(Storage):
     # whileOne: Storage.whileOne
 
 class WordArray(Storage):
+    # Constructors
+
+    @staticmethod
+    def empty():
+        return WordArray([])
+
+    @staticmethod
+    def empty_as(o):
+        return WordArray([], o=o)
+
+    @staticmethod
+    def new(i):
+        return WordArray(i)
+
+    @staticmethod
+    def new_as(i, o):
+        return WordArray(i, o=o)
+
+    @staticmethod
+    def from_word(i):
+        return WordArray([i.i])
+
+    @staticmethod
+    def from_word_as(i, o):
+        return WordArray(i.i, o=o)
+
     @staticmethod
     def from_bytes(data):
         rest = data
@@ -1692,11 +1861,25 @@ class WordArray(Storage):
 
         return lengthBytes + data
 
+    # Extension Monads
+
+    @staticmethod
+    def erase_impl(i):
+        return Word(i.i, o=NounType.LIST)
+
+    # Extension Dyads
+
+    @staticmethod
+    def retype_impl(i, x):
+        return WordArray(i.i, o=x.i)
+
     # Monads
 
     # atom: Storage.atom_list
 
-    # char: hotpatched by character.py to avoid circular imports
+    @staticmethod
+    def char_impl(i):
+        return MixedArray([Word(y, o=NounType.CHARACTER) for y in i.i])
 
     # complementation: Storage.complementation_impl
 
@@ -1706,7 +1889,7 @@ class WordArray(Storage):
 
     def first_impl(self):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
             return Word(self.i[0])
 
@@ -1760,39 +1943,53 @@ class WordArray(Storage):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #
     # def amend_floats(self, x):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #
     # def amend_mixed(self, x):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     def cut_word(self, x):
-        return self.drop(x)
+        if x.i == 1:
+            return MixedArray([WordArray.empty(), self])
+        elif x.i > 1:
+            return self.drop(x)
+        else:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
 
     # cut float: unsupported
 
     def cut_words(self, x):
         if len(x.i) == 0:
-            return self
+            return MixedArray([self])
+        elif len(self.i) == 0:
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
             first = x.i[0] - 1
             rest = x.i[1:]
             results = []
+            if first == 0:
+                results.append(WordArray.empty())
+            last = first
             for y in rest:
                 last = y - 1
-                if first <= last:
+                if last == 0:
+                    results.append(WordArray.empty())
+                elif first <= last:
                     results.append(WordArray(self.i[first:last]))
                     first = last
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
+            if len(self.i[last:]) > 0:
+                results.append(WordArray(self.i[last:]))
             return MixedArray(results)
 
     def cut_floats(self, x):
@@ -1812,9 +2009,9 @@ class WordArray(Storage):
                             results.append(WordArray(self.i[previous:last]))
                             previous = last
                         else:
-                            return error.Error.invalid_argument()
+                            return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             if previous is None:
                 return MixedArray(results)
             else:
@@ -1827,28 +2024,28 @@ class WordArray(Storage):
         else:
             first = x.i[0]
             if first.t != StorageType.WORD:
-                return error.Error.invalid_argument()
+                return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             rest = x.i[1:]
             results = []
             for y in rest:
                 last = y
                 if last.t != StorageType.WORD:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
                 if first.i <= last.i:
                     results.append(WordArray(self.i[first.i:last.i]))
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             return MixedArray(results)
 
     def divide_word(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return WordArray([float(y) / float(x.i) for y in self.i])
 
     def divide_float(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return FloatArray([float(y) / x.i for y in self.i])
 
@@ -1859,12 +2056,12 @@ class WordArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if x.i == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     results.append(float(y) / float(z))
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def divide_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -1873,12 +2070,12 @@ class WordArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if x.i == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     results.append(float(y) / z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def divide_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -1893,7 +2090,7 @@ class WordArray(Storage):
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def drop_word(self, x):
         if len(self.i) == 0:
@@ -1924,7 +2121,7 @@ class WordArray(Storage):
                     results.append(0)
             return WordArray(results)
         else:
-            return error.Error.shape_mismatch()
+            return Word(error.ErrorTypes.SHAPE_MISMATCH, o=NounType.ERROR)
 
     def equal_floats(self, x):
         if len(self.i) == len(x.i):
@@ -1936,7 +2133,7 @@ class WordArray(Storage):
                     results.append(0)
             return WordArray(results)
         else:
-            return error.Error.shape_mismatch()
+            return Word(error.ErrorTypes.SHAPE_MISMATCH, o=NounType.ERROR)
 
     def equal_mixed(self, x):
         if len(self.i) == len(x.i):
@@ -1948,7 +2145,7 @@ class WordArray(Storage):
                     results.append(0)
             return WordArray(results)
         else:
-            return error.Error.shape_mismatch()
+            return Word(error.ErrorTypes.SHAPE_MISMATCH, o=NounType.ERROR)
 
     # expand: unimplemented FIXME
 
@@ -2035,7 +2232,7 @@ class WordArray(Storage):
 
     def index_word(self, x):
         if x.i < 1 or x.i > len(self.i):
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             return Word(self.i[x.i - 1])
 
@@ -2058,7 +2255,7 @@ class WordArray(Storage):
 
     def integerDivide_word(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return WordArray([y // x.i for y in self.i])
 
@@ -2071,12 +2268,12 @@ class WordArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if x.i == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     results.append(y // z)
             return WordArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # integerDivide floats: unsupported
 
@@ -2093,7 +2290,7 @@ class WordArray(Storage):
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def join_word(self, x):
         return WordArray(self.i + [x.i])
@@ -2138,7 +2335,7 @@ class WordArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Word(y).less(Word(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def less_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2146,7 +2343,7 @@ class WordArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Word(y).less(Float(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def less_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2154,7 +2351,7 @@ class WordArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Word(y).less(z).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # match Integer: Word.false
     # match Real: Word.false
@@ -2272,9 +2469,9 @@ class WordArray(Storage):
 
     def min_words(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(x.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             for y in self.i:
@@ -2284,13 +2481,13 @@ class WordArray(Storage):
                 results.append(result.i)
             return WordArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def min_floats(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(x.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             for y in self.i:
@@ -2300,13 +2497,13 @@ class WordArray(Storage):
                 results.append(result.i)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def min_mixed(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(x.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             for y in self.i:
@@ -2316,7 +2513,7 @@ class WordArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_word(self, x):
         return WordArray([y - x.i for y in self.i])
@@ -2333,7 +2530,7 @@ class WordArray(Storage):
                 results.append(y - z)
             return WordArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2344,7 +2541,7 @@ class WordArray(Storage):
                 results.append(float(y) - z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2355,7 +2552,7 @@ class WordArray(Storage):
                 results.append(Word(y).minus(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_scalar(self, x):
         return WordArray([Word(y).more(x).i for y in self.i])
@@ -2366,7 +2563,7 @@ class WordArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Word(y).more(Word(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2374,7 +2571,7 @@ class WordArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Word(y).more(Float(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2382,7 +2579,7 @@ class WordArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Word(y).more(z).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_word(self, x):
         return WordArray([float(y) + float(x.i) for y in self.i])
@@ -2399,7 +2596,7 @@ class WordArray(Storage):
                 results.append(float(y) + float(z))
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2410,7 +2607,7 @@ class WordArray(Storage):
                 results.append(float(y) + z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2421,7 +2618,7 @@ class WordArray(Storage):
                 results.append(Word(y).plus(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def power_scalar(self, x):
         return FloatArray(list(map(lambda y: math.pow(y, x.i), self.i)))
@@ -2462,15 +2659,25 @@ class WordArray(Storage):
 
     def split_word(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
-        elif 0 < x.i <= len(self.i):
-            return MixedArray([WordArray(self.i[:x.i]), WordArray(self.i[x.i:])])
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif x.i < 1:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
-            return error.Error.out_of_bounds()
+            working = self.i
+            while len(working) < x.i:
+                working += self.i
+            results = []
+            while len(working) > x.i:
+                result = working[:x.i]
+                working = working[x.i:]
+                results.append(WordArray(result))
+            if len(working) > 0:
+                results.append(WordArray(working))
+            return MixedArray(results)
 
     def split_float(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         elif x.i == 0.0:
             return WordArray([])
         elif 0.0 < x.i <= 1.0:
@@ -2479,66 +2686,67 @@ class WordArray(Storage):
             lowIndex = int(extent)
             return self.split(Word(lowIndex))
         else:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
 
     def split_words(self, x):
-        if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+        if len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+        elif len(self.i) == 0:
+            return self
         else:
             results = []
-            working = self
-            for index in range(len(x.i)):
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = x.i[index]
-                split  = working.split(Word(offset))
-                if split.o == NounType.ERROR:
-                    return split
-
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
+            working = self.i
+            for length in x.i:
+                while len(working) < length:
+                    working += self.i
+                result = working[:length]
+                working = working[length:]
+                results.append(WordArray(result))
+            if len(working) > 0:
+                results.append(WordArray(working))
             return MixedArray(results)
 
     def split_floats(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
-            results = []
-            working = self
-            for index in range(len(x.i)):
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = Float(x.i[index])
-                split  = working.split(offset)
-                if len(split.i) != 2:
-                    return error.Error.out_of_bounds()
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
-            return MixedArray(results)
+            count = len(self.i)
+            lengths = [int(y * count) for y in x.i]
+            return self.split(WordArray(lengths))
 
     def split_mixed(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
             results = []
-            working = self
-            for index in range(len(x.i)):
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = x.i[index]
-                split  = working.split(offset)
-                if len(split.i) != 2:
-                    return error.Error.out_of_bounds()
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
+            working = self.i
+            count = len(self.i)
+            for y in x.i:
+                length = 0
+                if y.o == NounType.INTEGER:
+                    length = y.i
+                elif y.o == NounType.REAL:
+                    length = int(count * y.i)
+                else:
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+
+                while len(working) < length:
+                    working += self.i
+
+                result = working[:length]
+                working = working[length:]
+                results.append(WordArray(result))
+            if len(working) > 0:
+                results.append(WordArray(working))
             return MixedArray(results)
 
     def take_word(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return self
         elif x.i == 0:
             return WordArray([])
         elif 1 <= x.i <= len(self.i):
@@ -2588,7 +2796,7 @@ class WordArray(Storage):
             results = []
             for y in x.i:
                 result = self.take(Word(y))
-                if isinstance(result, error.Error):
+                if result.o == NounType.ERROR:
                     return result
                 else:
                     results.append(result)
@@ -2616,7 +2824,7 @@ class WordArray(Storage):
             results = []
             for y in x.i:
                 result = self.take(y)
-                if isinstance(result, error.Error):
+                if result.o == NounType.ERROR:
                     return result
                 else:
                     results.append(result)
@@ -2637,7 +2845,7 @@ class WordArray(Storage):
                 results.append(y * z)
             return WordArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def times_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2648,7 +2856,7 @@ class WordArray(Storage):
                 results.append(float(y) * z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def times_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2659,7 +2867,7 @@ class WordArray(Storage):
                 results.append(Word(y).times(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # def replicate(self, x):
     #     if x.t == StorageType.WORD_ARRAY:
@@ -2670,9 +2878,9 @@ class WordArray(Storage):
     #                 results = results + ([y]*z)
     #             return WordArray(results)
     #         else:
-    #             return error.Error.invalid_argument()
+    #             return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     # Monadic adverbs
 
@@ -2757,7 +2965,7 @@ class WordArray(Storage):
 
     def overNeutral_impl(self, f, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY.value, o=NounType.ERROR)
         else:
             accumulator = x
             for index, y in enumerate(self.i):
@@ -2781,6 +2989,22 @@ class WordArray(Storage):
     # whileOne: Storage.whileOne_impl
 
 class FloatArray(Storage):
+    @staticmethod
+    def empty():
+        return FloatArray([])
+
+    @staticmethod
+    def empty_as(o):
+        return FloatArray([], o=o)
+
+    @staticmethod
+    def new(i):
+        return FloatArray(i)
+
+    @staticmethod
+    def new_as(i, o):
+        return FloatArray(i, o=o)
+
     @staticmethod
     def from_bytes(data):
         rest = data
@@ -2816,6 +3040,18 @@ class FloatArray(Storage):
 
         return lengthBytes + data
 
+    # Extension Monads
+
+    @staticmethod
+    def erase_impl(i):
+        return Word(i.i, o=NounType.LIST)
+
+    # Extension Dyads
+
+    @staticmethod
+    def retype_impl(i, x):
+        return FloatArray(i.i, o=x.i)
+
     # Monads
 
     # atom: Storage.atom_list
@@ -2830,7 +3066,7 @@ class FloatArray(Storage):
 
     def first_impl(self):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
             return Float(self.i[0])
 
@@ -2884,77 +3120,82 @@ class FloatArray(Storage):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #
     # def amend_floats(self, x):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #
     # def amend_mixed(self, x):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     def cut_word(self, x):
-        return self.drop(x)
+        if x.i == 1:
+            return MixedArray([FloatArray.empty(), self])
+        elif x.i > 1:
+            return self.drop(x)
+        else:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
 
     # cut float: unsupported
 
     def cut_words(self, x):
         if len(x.i) == 0:
             return MixedArray([self])
+        elif len(self.i) == 0:
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
-            previous = None
+            first = x.i[0] - 1
+            rest = x.i[1:]
             results = []
-            for y in x.i:
-                if y >= 1:
-                    if previous is None:
-                        results.append(WordArray(self.i[:y - 1]))
-                        previous = y
-                    else:
-                        if previous <= y:
-                            results.append(WordArray(self.i[previous - 1:y - 1]))
-                            previous = y
-                        else:
-                            return error.Error.invalid_argument()
+            if first == 0:
+                results.append(FloatArray.empty())
+            last = first
+            for y in rest:
+                last = y - 1
+                if last == 0:
+                    results.append(FloatArray.empty())
+                elif first <= last:
+                    results.append(FloatArray(self.i[first:last]))
+                    first = last
                 else:
-                    return error.Error.invalid_argument()
-            if previous is None:
-                return MixedArray(results)
-            else:
-                results.append(WordArray(self.i[previous - 1:]))
-                return MixedArray(results)
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
+            if len(self.i[last:]) > 0:
+                results.append(FloatArray(self.i[last:]))
+            return MixedArray(results)
 
     # cut floats: unsupported
 
     def cut_mixed(self, x):
         first = x.i[0]
         if first.t != StorageType.WORD:
-            return error.Error.invalid_argument()
+            return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
         rest = x.i[1:]
         results = []
         for y in rest:
             last = y
             if last.t != StorageType.WORD:
-                return error.Error.invalid_argument()
+                return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             if first.i <= last.i:
                 results.append(FloatArray(self.i[first.i:last.i]))
             else:
-                return error.Error.invalid_argument()
+                return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
         return MixedArray(results)
 
     def divide_word(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return WordArray([float(y) / float(x.i) for y in self.i])
 
     def divide_float(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return FloatArray([float(y) / x.i for y in self.i])
 
@@ -2965,12 +3206,12 @@ class FloatArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if x.i == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     results.append(y / float(z))
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def divide_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2979,12 +3220,12 @@ class FloatArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if x.i == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     results.append(y / z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def divide_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -2993,12 +3234,12 @@ class FloatArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if x.match(Word(0)):
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     results.append(Float(y).divide(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def drop_word(self, x):
         if len(self.i) == 0:
@@ -3029,7 +3270,7 @@ class FloatArray(Storage):
                     results.append(0)
             return WordArray(results)
         else:
-            return error.Error.shape_mismatch()
+            return Word(error.ErrorTypes.SHAPE_MISMATCH, o=NounType.ERROR)
 
     def equal_floats(self, x):
         if len(self.i) == len(x.i):
@@ -3041,7 +3282,7 @@ class FloatArray(Storage):
                     results.append(0)
             return WordArray(results)
         else:
-            return error.Error.shape_mismatch()
+            return Word(error.ErrorTypes.SHAPE_MISMATCH, o=NounType.ERROR)
 
     def equal_mixed(self, x):
         if len(self.i) == len(x.i):
@@ -3053,7 +3294,7 @@ class FloatArray(Storage):
                     results.append(0)
             return WordArray(results)
         else:
-            return error.Error.shape_mismatch()
+            return Word(error.ErrorTypes.SHAPE_MISMATCH, o=NounType.ERROR)
 
     def find_word(self, x):
         if len(self.i) == 0:
@@ -3138,7 +3379,7 @@ class FloatArray(Storage):
 
     def index_word(self, x):
         if x.i < 1 or x.i > len(self.i):
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             return Float(self.i[x.i - 1])
 
@@ -3204,7 +3445,7 @@ class FloatArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Float(y).less(Word(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def less_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3212,7 +3453,7 @@ class FloatArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Float(y).less(Float(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def less_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3220,7 +3461,7 @@ class FloatArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Float(y).less(z).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # match word, float: Word.false
     def match_words(self, x):
@@ -3335,7 +3576,7 @@ class FloatArray(Storage):
 
     def min_words(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             if len(self.i) == len(x.i):
@@ -3346,13 +3587,13 @@ class FloatArray(Storage):
                         results.append(y)
                 return FloatArray(results)
             else:
-                return error.Error.unequal_array_lengths()
+                return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def min_floats(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             if len(self.i) == len(x.i):
@@ -3363,13 +3604,13 @@ class FloatArray(Storage):
                         results.append(y)
                 return FloatArray(results)
             else:
-                return error.Error.unequal_array_lengths()
+                return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def min_mixed(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             if len(self.i) == len(x.i):
@@ -3377,9 +3618,9 @@ class FloatArray(Storage):
                     results.append(Float(y).min(z))
                 return MixedArray(results)
             else:
-                return error.Error.unequal_array_lengths()
+                return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_word(self, x):
         return FloatArray([y - float(x.i) for y in self.i])
@@ -3396,7 +3637,7 @@ class FloatArray(Storage):
                 results.append(y - float(z))
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3407,7 +3648,7 @@ class FloatArray(Storage):
                 results.append(y - z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3418,7 +3659,7 @@ class FloatArray(Storage):
                 results.append(Float(y).minus(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_scalar(self, x):
         return WordArray([Float(y).more(x).i for y in self.i])
@@ -3429,7 +3670,7 @@ class FloatArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Float(y).more(Float(float(z))).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3437,7 +3678,7 @@ class FloatArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Float(y).more(Float(z)).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3445,7 +3686,7 @@ class FloatArray(Storage):
         elif len(self.i) == len(x.i):
             return WordArray([Float(y).more(z).i for y, z in zip(self.i, x.i)])
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_word(self, x):
         return FloatArray([y + float(x.i) for y in self.i])
@@ -3462,7 +3703,7 @@ class FloatArray(Storage):
                 results.append(y + float(z))
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3473,7 +3714,7 @@ class FloatArray(Storage):
                 results.append(y + z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3484,7 +3725,7 @@ class FloatArray(Storage):
                 results.append(Float(y).plus(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def power_scalar(self, x):
         return FloatArray(list(map(lambda y: math.pow(y, x.i), self.i)))
@@ -3514,16 +3755,25 @@ class FloatArray(Storage):
 
     def split_word(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif x.i < 1:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
-            if 0 < x.i <= len(self.i):
-                return MixedArray([FloatArray(self.i[:x.i]), FloatArray(self.i[x.i:])])
-            else:
-                return error.Error.out_of_bounds()
+            working = self.i
+            while len(working) < x.i:
+                working += self.i
+            results = []
+            while len(working) > x.i:
+                result = working[:x.i]
+                working = working[x.i:]
+                results.append(FloatArray(result))
+            if len(working) > 0:
+                results.append(FloatArray(working))
+            return MixedArray(results)
 
     def split_float(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             if x.i == 0.0:
                 return FloatArray([])
@@ -3533,68 +3783,70 @@ class FloatArray(Storage):
                 lowIndex = int(extent)
                 return self.split(Word(lowIndex))
             else:
-                return error.Error.out_of_bounds()
+                return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
 
     def split_words(self, x):
-        if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+        if len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+        elif len(self.i) == 0:
+            return self
         else:
             results = []
-            working = self
-            for index in x.i:
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = Word(x.i[index])
-                split  = working.split(offset)
-                if split.o == NounType.ERROR:
-                    return split
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
+            working = self.i
+            for length in x.i:
+                while len(working) < length:
+                    working += self.i
+                result = working[:length]
+                working = working[length:]
+                results.append(FloatArray(result))
+            if len(working) > 0:
+                results.append(FloatArray(working))
             return MixedArray(results)
 
     def split_floats(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
             if len(x.i) == 0:
                 return FloatArray([])
             else:
-                results = []
-                working = self
-                for extent in x.i:
-                    offset = int(extent * len(working.i))
-                    split  = working.split(Word(offset))
-                    if split.o == NounType.ERROR:
-                        return split
-                    else:
-                        results.append(split.i[0])
-                        working = split.i[1]
-                results.append(working)
-                return MixedArray(results)
+                count = len(self.i)
+                lengths = [int(y * count) for y in x.i]
+                return self.split(WordArray(lengths))
 
     def split_mixed(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
-            if len(x.i) == 0:
-                return FloatArray([])
-            else:
-                results = []
-                working = self
-                for y in x.i:
-                    split  = working.split(y)
-                    if split.o == NounType.ERROR:
-                        return split
-                    else:
-                        results.append(split.i[0])
-                        working = split.i[1]
-                results.append(working)
-                return MixedArray(results)
+            results = []
+            working = self.i
+            count = len(self.i)
+            for y in x.i:
+                length = 0
+                if y.o == NounType.INTEGER:
+                    length = y.i
+                elif y.o == NounType.REAL:
+                    length = int(count * y.i)
+                else:
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+
+                while len(working) < length:
+                    working += self.i
+
+                result = working[:length]
+                working = working[length:]
+                results.append(FloatArray(result))
+            if len(working) > 0:
+                results.append(FloatArray(working))
+            return MixedArray(results)
 
     def take_word(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         elif x.i == 0:
             return FloatArray([])
         elif 1 <= x.i <= len(self.i):
@@ -3644,7 +3896,7 @@ class FloatArray(Storage):
             results = []
             for y in x.i:
                 result = self.take(Word(y))
-                if isinstance(result, error.Error):
+                if result.o == NounType.ERROR:
                     return result
                 else:
                     results.append(result)
@@ -3672,7 +3924,7 @@ class FloatArray(Storage):
             results = []
             for y in x.i:
                 result = self.take(y)
-                if isinstance(result, error.Error):
+                if result.o == NounType.ERROR:
                     return result
                 else:
                     results.append(result)
@@ -3693,7 +3945,7 @@ class FloatArray(Storage):
                 results.append(y * float(z))
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def times_floats(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3704,7 +3956,7 @@ class FloatArray(Storage):
                 results.append(y * z)
             return FloatArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def times_mixed(self, x):
         if len(self.i) == 0 and len(x.i) == 0:
@@ -3715,7 +3967,7 @@ class FloatArray(Storage):
                 results.append(Float(y).times(z))
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # Monadic adverbs
 
@@ -3801,7 +4053,7 @@ class FloatArray(Storage):
 
     def overNeutral_impl(self, f, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
             accumulator = x
             for index, y in enumerate(self.i):
@@ -3835,9 +4087,9 @@ class FloatArray(Storage):
     #                 results = results + ([y]*z)
     #             return FloatArray(results)
     #         else:
-    #             return error.Error.invalid_argument()
+    #             return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     # def iterate(self, f, x):
     #     if x.t == StorageType.WORD:
@@ -3849,9 +4101,9 @@ class FloatArray(Storage):
     #                 truth = truth.minus(Word(1))
     #             return current
     #         else:
-    #             return error.Error.invalid_adverb_argument()
+    #             return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
 class MixedArray(Storage):
     @staticmethod
@@ -3886,11 +4138,47 @@ class MixedArray(Storage):
 
         return lengthBytes + data
 
+    # Extension Monads
+
+    @staticmethod
+    def erase_impl(i):
+        return Word(i.i, o=NounType.LIST)
+
+    # Extension Dyads
+
+    @staticmethod
+    def retype_impl(i, x):
+        return MixedArray(i.i, o=x.i)
+
     # Monads
 
     # atom: Storage.atom_list
 
-    # char: hotpatched by character.py to avoid circular imports
+    @staticmethod
+    def char_impl(i):
+        results = []
+        for y in i.i:
+            if y.t == StorageType.WORD:
+                result = y.char()
+                if result.o == NounType.ERROR:
+                    return result
+                else:
+                    results.append(result)
+            elif y.t == StorageType.WORD_ARRAY:
+                result = y.char()
+                if result.o == NounType.ERROR:
+                    return result
+                else:
+                    results.append(result)
+            elif y.t == StorageType.MIXED_ARRAY:
+                result = y.char()
+                if result.o == NounType.ERROR:
+                    return result
+                else:
+                    results.append(result)
+            else:
+                return Word(error.ErrorTypes.UNSUPPORTED_OBJECT, o=NounType.ERROR)
+        return MixedArray(results)
 
     # complementation: Storage.complementation_impl
 
@@ -3900,7 +4188,7 @@ class MixedArray(Storage):
 
     def first_impl(self):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
             return self.i[0]
 
@@ -3962,7 +4250,7 @@ class MixedArray(Storage):
             arrays = [FloatArray(list(y)) for y in zipped]
             return MixedArray(arrays)
         else:
-            return error.Error.invalid_argument()
+            return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     def unique_impl(self):
         return MixedArray(list(dict.fromkeys(self.i)))
@@ -3974,22 +4262,27 @@ class MixedArray(Storage):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #
     # def amend_floats(self, x):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #
     # def amend_mixed(self, x):
     #     if len(self.i) == len(x.i):
     #         return Dictionary(self, x)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     def cut_word(self, x):
-        return self.drop(x)
+        if x.i == 1:
+            return MixedArray([WordArray.empty(), self])
+        elif x.i > 1:
+            return self.drop(x)
+        else:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
 
     # cut float: unsupported
 
@@ -4009,9 +4302,9 @@ class MixedArray(Storage):
                             results.append(MixedArray(self.i[previous-1:y-1]))
                             previous = y
                         else:
-                            return error.Error.invalid_argument()
+                            return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
             if previous is None:
                 return MixedArray(results)
             else:
@@ -4037,11 +4330,11 @@ class MixedArray(Storage):
                                 results.append(MixedArray(self.i[previous-1:y.i-1]))
                                 previous = y.i
                             else:
-                                return error.Error.invalid_argument()
+                                return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
                     else:
-                        return error.Error.invalid_argument()
+                        return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
                 else:
-                    return error.Error.invalid_argument()
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
             if previous is None:
                 return MixedArray(results)
@@ -4051,7 +4344,7 @@ class MixedArray(Storage):
 
     def divide_word(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return MixedArray([y.divide(x) for y in self.i])
 
@@ -4072,13 +4365,13 @@ class MixedArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if z == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     result = y.divide(Word(z))
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def divide_floats(self, x):
         if len(self.i) == 0:
@@ -4093,7 +4386,7 @@ class MixedArray(Storage):
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def divide_mixed(self, x):
         if len(self.i) == 0:
@@ -4108,7 +4401,7 @@ class MixedArray(Storage):
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def drop_word(self, x):
         if len(self.i) == 0:
@@ -4221,7 +4514,7 @@ class MixedArray(Storage):
 
     def index_word(self, x):
         if x.i < 1 or x.i > len(self.i):
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         else:
             return self.i[x.i - 1]
 
@@ -4244,7 +4537,7 @@ class MixedArray(Storage):
 
     def integerDivide_word(self, x):
         if x.i == 0:
-            return error.Error.division_by_zero()
+            return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
         else:
             return MixedArray([y.integerDivide(x) for y in self.i])
 
@@ -4257,13 +4550,13 @@ class MixedArray(Storage):
             results = []
             for y, z in zip(self.i, x.i):
                 if z == 0:
-                    return error.Error.division_by_zero()
+                    return Word(error.ErrorTypes.DIVISION_BY_ZERO, o=NounType.ERROR)
                 else:
                     result = y.integerDivide(Word(z))
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # integerDivide floats: unsupported
 
@@ -4280,7 +4573,7 @@ class MixedArray(Storage):
                     results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def join_scalar(self, x):
         return MixedArray(self.i + [x])
@@ -4415,9 +4708,9 @@ class MixedArray(Storage):
 
     def min_words(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(x.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             for y in self.i:
@@ -4427,13 +4720,13 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def min_floats(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(x.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             for y in self.i:
@@ -4443,13 +4736,13 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def min_mixed(self, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(x.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         elif len(self.i) == len(x.i):
             results = []
             for y in self.i:
@@ -4459,7 +4752,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_word(self, x):
         return MixedArray([y.minus(x) for y in self.i])
@@ -4481,7 +4774,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_floats(self, x):
         if len(self.i) == 0:
@@ -4493,7 +4786,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def minus_mixed(self, x):
         if len(self.i) == 0:
@@ -4505,7 +4798,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def more_impl(self, x):
         return WordArray([y.more(x).i for y in self.i])
@@ -4530,7 +4823,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_floats(self, x):
         if len(self.i) == 0:
@@ -4542,7 +4835,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def plus_mixed(self, x):
         if len(self.i) == 0:
@@ -4554,7 +4847,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def power_impl(self, x):
         return MixedArray(list(map(lambda y: y.power(x), self.i)))
@@ -4582,15 +4875,25 @@ class MixedArray(Storage):
 
     def split_word(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
-        elif 0 < x.i <= len(self.i):
-            return MixedArray([MixedArray(self.i[:x.i]), MixedArray(self.i[x.i:])])
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif x.i < 1:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
-            return error.Error.out_of_bounds()
+            working = self.i
+            while len(working) < x.i:
+                working += self.i
+            results = []
+            while len(working) > x.i:
+                result = working[:x.i]
+                working = working[x.i:]
+                results.append(MixedArray(result))
+            if len(working) > 0:
+                results.append(MixedArray(working))
+            return MixedArray(results)
 
     def split_float(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
         elif x.i == 0.0:
             return MixedArray([])
         elif 0.0 < x.i <= 1.0:
@@ -4599,60 +4902,62 @@ class MixedArray(Storage):
             lowIndex = int(extent)
             return self.split(Word(lowIndex))
         else:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
 
     def split_words(self, x):
-        if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+        if len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+        elif len(self.i) == 0:
+            return self
         else:
             results = []
-            working = self
-            for index in range(len(x.i)):
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = Word(x.i[index])
-                split  = working.split(offset)
-                if split.o == NounType.ERROR:
-                    return split
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
+            working = self.i
+            for length in x.i:
+                while len(working) < length:
+                    working += self.i
+                result = working[:length]
+                working = working[length:]
+                results.append(MixedArray(result))
+            if len(working) > 0:
+                results.append(MixedArray(working))
             return MixedArray(results)
 
     def split_floats(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
-            results = []
-            working = self
-            for index in range(len(x.i)):
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = Float(x.i[index])
-                split  = working.split(offset)
-                if split.o == NounType.ERROR:
-                    return split
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
-            return MixedArray(results)
+            count = len(self.i)
+            lengths = [int(y * count) for y in x.i]
+            return self.split(WordArray(lengths))
 
     def split_mixed(self, x):
         if len(self.i) == 0:
-            return error.Error.out_of_bounds()
+            return Word(error.ErrorTypes.OUT_OF_BOUNDS.value, o=NounType.ERROR)
+        elif len(x.i) == 0:
+            return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
         else:
             results = []
-            working = self
-            for index in range(len(x.i)):
-                if len(working.i) == 0:
-                    return error.Error.out_of_bounds()
-                offset = x.i[index]
-                split  = working.split(offset)
-                if split.o == NounType.ERROR:
-                    return split
-                results.append(split.i[0])
-                working = split.i[1]
-            results.append(working)
+            working = self.i
+            count = len(self.i)
+            for y in x.i:
+                length = 0
+                if y.o == NounType.INTEGER:
+                    length = y.i
+                elif y.o == NounType.REAL:
+                    length = int(count * y.i)
+                else:
+                    return Word(error.ErrorTypes.INVALID_ARGUMENT.value, o=NounType.ERROR)
+
+                while len(working) < length:
+                    working += self.i
+
+                result = working[:length]
+                working = working[length:]
+                results.append(MixedArray(result))
+            if len(working) > 0:
+                results.append(MixedArray(working))
             return MixedArray(results)
 
     def take_word(self, x):
@@ -4719,7 +5024,7 @@ class MixedArray(Storage):
         results = []
         for y in x.i:
             result = self.take(Word(y))
-            if isinstance(result, error.Error):
+            if result.o == NounType.ERROR:
                 return result
             else:
                 results.append(result)
@@ -4747,7 +5052,7 @@ class MixedArray(Storage):
         results = []
         for y in x.i:
             result = self.take(y)
-            if isinstance(result, error.Error):
+            if result.o == NounType.ERROR:
                 return result
             else:
                 results.append(result)
@@ -4773,7 +5078,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def times_floats(self, x):
         if len(self.i) == 0:
@@ -4785,7 +5090,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     def times_mixed(self, x):
         if len(self.i) == 0:
@@ -4797,7 +5102,7 @@ class MixedArray(Storage):
                 results.append(result)
             return MixedArray(results)
         else:
-            return error.Error.unequal_array_lengths()
+            return Word(error.ErrorTypes.UNEQUAL_ARRAY_LENGTHS, o=NounType.ERROR)
 
     # def replicate(self, x):
     #     if x.t == StorageType.WORD_ARRAY:
@@ -4808,9 +5113,9 @@ class MixedArray(Storage):
     #                 results = results + ([y]*z)
     #             return MixedArray(results)
     #         else:
-    #             return error.Error.invalid_argument()
+    #             return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
     #     else:
-    #         return error.Error.invalid_argument()
+    #         return Word(error.ErrorTypes.INVALID_ARGUMENT, o=NounType.ERROR)
 
     # Monadic adverbs
 
@@ -4900,7 +5205,7 @@ class MixedArray(Storage):
 
     def overNeutral_impl(self, f, x):
         if len(self.i) == 0:
-            return error.Error.empty_argument()
+            return Word(error.ErrorTypes.EMPTY, o=NounType.ERROR)
         else:
             accumulator = x
             for index, y in enumerate(self.i):
@@ -4924,156 +5229,3 @@ class MixedArray(Storage):
     # scanWhileOne: Storage.scanWhileOne_impl
 
     # whileOne: Storage.whileOne_impl
-
-    # def apply(self, x, rop):
-    #     results = []
-    #     for y in self.i:
-    #         result = rop(x, y)
-    #         if result.o == NounType.ERROR:
-    #             return result
-    #         else:
-    #             results.append(result)
-    #
-    #     return MixedArray(results)
-
-    # def iterate(self, f, x):
-    #     if x.t == StorageType.WORD:
-    #         if x.i >= 0:
-    #             current = self
-    #             truth = x
-    #             while truth != Word(0):
-    #                 current = Noun.dispatchMonad(current, f)
-    #                 truth = truth.minus(Word(1))
-    #             return current
-    #         else:
-    #             return error.Error.invalid_adverb_argument()
-    #     else:
-    #         return error.Error.invalid_argument()
-
-# class Dictionary:
-#     def __init__(self, keys, values):
-#         self.map = {}
-#         if keys.t == StorageType.WORD_ARRAY:
-#             for index, key in enumerate(keys.i):
-#                 value = values.index(Word(index + 1))
-#                 self.map[Word(key)] = value
-#         elif keys.t == StorageType.FLOAT_ARRAY:
-#             for index, key in enumerate(keys.i):
-#                 value = values.index(Word(index + 1))
-#                 self.map[Word(key)] = value
-#         if keys.t == StorageType.MIXED_ARRAY:
-#             for index, key in enumerate(keys.i):
-#                 value = values.index(Word(index + 1))
-#                 self.map[key] = value
-#
-#     def __eq__(self, x):
-#         if not isinstance(x, Dictionary):
-#             return False
-#         return self.map == x.map
-#
-#     def __str__(self):
-#         result = "{"
-#         for key, value in self.map.items():
-#             result += str(key) + ":" + str(value) + ", "
-#         result += "}"
-#         return result
-#
-#     def get(self, key):
-#         if key in self.map:
-#             return self.map[key]
-#         else:
-#             return error.Error.unknown_key()
-#
-#     def put(self, key, value):
-#         newMap = self.map.copy()
-#         newMap[key] = value
-#         keys = []
-#         values = []
-#         for key, value in newMap.items():
-#             keys.append(key)
-#             values.append(value)
-#         if all(map(lambda y: y.t == StorageType.WORD, keys)):
-#             if all(map(lambda y: y.t == StorageType.WORD, values)):
-#                 return Dictionary(WordArray([y.i for y in keys]), WordArray([y.i for y in values]))
-#             elif all(map(lambda y: y.t == StorageType.FLOAT, values)):
-#                 return Dictionary(WordArray([y.i for y in keys]), FloatArray([y.i for y in values]))
-#             else:
-#                 return Dictionary(WordArray(keys), MixedArray(values))
-#         elif all(map(lambda y: y.t == StorageType.FLOAT, keys)):
-#             if all(map(lambda y: y.t == StorageType.WORD, values)):
-#                 return Dictionary(FloatArray([y.i for y in keys]), WordArray([y.i for y in values]))
-#             elif all(map(lambda y: y.t == StorageType.FLOAT, values)):
-#                 return Dictionary(FloatArray([y.i for y in keys]), FloatArray([y.i for y in values]))
-#             else:
-#                 return Dictionary(FloatArray([y.i for y in keys]), MixedArray(values))
-#         else:
-#             if all(map(lambda y: y.t == StorageType.WORD, values)):
-#                 return Dictionary(MixedArray(keys), WordArray([y.i for y in values]))
-#             elif all(map(lambda y: y.t == StorageType.FLOAT, values)):
-#                 return Dictionary(MixedArray(keys), FloatArray([y.i for y in values]))
-#             else:
-#                 return Dictionary(MixedArray(keys), MixedArray(values))
-#
-#     def contains(self, key):
-#         if key in self.map:
-#             return Word(1)
-#         else:
-#             return Word(0)
-#
-#     def remove(self, key):
-#         pairs = self.items()
-#         transposed = pairs.transpose()
-#         keys = transposed.index(Word(1))
-#         values = transposed.index(Word(2))
-#         if keys.t == StorageType.WORD_ARRAY:
-#             index = keys.i.index(key.i)
-#             if index == -1:
-#                 return error.Error.unknown_key()
-#             del keys.i[index]
-#             del values.i[index]
-#             return Dictionary(keys, values)
-#         elif keys.t == StorageType.FLOAT_ARRAY:
-#             index = keys.i.index(key.i)
-#             if index == -1:
-#                 return error.Error.unknown_key()
-#             del keys.i[index]
-#             del values.i[index]
-#             return Dictionary(keys, values)
-#         elif keys.t == StorageType.MIXED_ARRAY:
-#             index = keys.i.index(key)
-#             if index == -1:
-#                 return error.Error.unknown_key()
-#             del keys.i[index]
-#             del values.i[index]
-#             return Dictionary(keys, values)
-#         else:
-#             return error.Error.unsupported_object()
-#
-#     def keys(self):
-#         result = self.map.keys()
-#         if all(map(lambda y: y.t == StorageType.WORD, result)):
-#             return WordArray([y.i for y in result])
-#         elif all(map(lambda y: y.t == StorageType.FLOAT, result)):
-#             return FloatArray([y.i for y in result])
-#         else:
-#             return MixedArray(result)
-#
-#     def values(self):
-#         result = self.map.values()
-#         if all(map(lambda y: y.t == StorageType.WORD, result)):
-#             return WordArray([y.i for y in result])
-#         elif all(map(lambda y: y.t == StorageType.FLOAT, result)):
-#             return FloatArray([y.i for y in result])
-#         else:
-#             return MixedArray(result)
-#
-#     def items(self):
-#         results = []
-#         for key, value in self.map.items():
-#             if key.t == StorageType.WORD and value.t == StorageType.WORD:
-#                 results.append(WordArray([key.i, value.i]))
-#             elif key.t == StorageType.FLOAT and value.t == StorageType.FLOAT:
-#                 results.append(FloatArray([key.i, value.i]))
-#             else:
-#                 results.append(MixedArray([key, value]))
-#         return MixedArray(results)

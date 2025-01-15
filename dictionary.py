@@ -1,7 +1,7 @@
-import error
-import iotaSymbol as symbol
+from storage import *
 from noun import Noun, MetaNoun
 from utils import *
+import error
 
 # Monads
 
@@ -12,9 +12,7 @@ from utils import *
 # enclose: Storage.enclose_impl
 
 def first_impl(i):
-    untyped = storage.WordArray(i.i)
-    untypedResult = untyped.first()
-    return Dictionary.new(untypedResult)
+    return i.erase().first().retype(NounType.DICTIONARY.symbol())
 
 # floor: unsupported
 
@@ -37,7 +35,7 @@ def first_impl(i):
 # shape: Word.zero
 
 def size_impl(i):
-    return len(i.i)
+    return i.erase().size()
 
 # transpose: unsupported
 
@@ -50,10 +48,7 @@ def size_impl(i):
 # divide: unsupported
 
 def drop_impl(i, x):
-    untyped = storage.WordArray(i.i)
-    untypedResult = untyped.drop(x)
-    return Dictionary.new(untypedResult)
-
+    return i.erase().drop(x).retype(NounType.DICTIONARY.symbol())
 
 # equal: unsupported
 
@@ -61,14 +56,13 @@ def drop_impl(i, x):
 
 def find_impl(i, x):
     for pair in i.i:
-        if pair.t == storage.StorageType.MIXED_ARRAY:
+        if pair.t == StorageType.MIXED_ARRAY:
             if len(pair.i) == 2:
                 key = pair.i[0]
-                if key.match(x) == storage.Word.true():
+                if key.match(x) == Word.true():
                     value = pair.i[1]
                     return value
-    return symbol.Symbol.undefined.symbol()
-
+    return Word(SymbolType.undefined, o=NounType.BUILTIN_SYMBOL)
 
 # form: unimplemented FIXME
 
@@ -81,7 +75,7 @@ def find_impl(i, x):
 # integerDivide: unimplemented FIXME
 
 def join_toList(i, x):
-    return storage.MixedArray([i, x])
+    return i.enclose().join(x.enclose())
 
 def join_typed(i, x, c):
     if len(x.i) == 2:
@@ -91,22 +85,22 @@ def join_typed(i, x, c):
         matched = False
         for pair in i.i:
             key = pair.first()
-            if key.match(y) == storage.Word.true():
+            if key.match(y) == Word.true():
                 matched = True
                 results.append(x)
             else:
                 results.append(pair)
         if not matched:
             results.append(x)
-        return storage.MixedArray(results)
+        return MixedArray(results)
     else:
         return join_toList(i, x)
 
 def join_words(i, x):
-    join_typed(i, x, storage.Word)
+    join_typed(i, x, Word)
 
 def join_floats(i, x):
-    join_typed(i, x, storage.Float)
+    join_typed(i, x, Float)
 
 def join_mixed(i, x):
     join_typed(i, x, identity)
@@ -114,10 +108,7 @@ def join_mixed(i, x):
 # less: unsupported
 
 def match_dictionary(i, x):
-    y = storage.MixedArray(i.i)
-    z = storage.MixedArray(x.i)
-    return y.match(z)
-
+    return i.erase().match(x.erase())
 
 # max: unsupported
 
@@ -146,9 +137,7 @@ def match_dictionary(i, x):
 # converge: Storage.converge_impl
 
 def each_impl(i, f):
-    untyped = storage.WordArray(i.i)
-    return untyped.each(f)
-
+    return i.erase().each(f)
 
 # eachPair: Storage.identity
 
@@ -178,14 +167,14 @@ class MetaDictionary(MetaNoun, type):
     def __new__(cls, name, bases, dct):
         obj = super().__new__(cls, name, bases, dct)
 
-        Noun.dispatch[(storage.NounType.DICTIONARY, storage.StorageType.MIXED_ARRAY)] = {
+        Noun.dispatch[(NounType.DICTIONARY, StorageType.MIXED_ARRAY)] = {
             # Monads
-            storage.Monads.atom: storage.Word.true,
+            Monads.atom: Word.true,
             # Monads.char: unsupported
-            storage.Monads.complementation: storage.Storage.complementation_impl,
-            storage.Monads.enclose: storage.Storage.enclose_impl,
+            Monads.complementation: Storage.complementation_impl,
+            Monads.enclose: Storage.enclose_impl,
             # Monads.enumerate: Word.enumerate_impl,
-            storage.Monads.first: first_impl,
+            Monads.first: first_impl,
             # Monads.floor: unsupported
             # Monads.format: unimplemented FIXME
             # Monads.gradeDown: unsupported
@@ -193,9 +182,9 @@ class MetaDictionary(MetaNoun, type):
             # Monads.group: unsupported
             # Monads.negate: unsupported
             # Monads.reciprocal: unsupported
-            storage.Monads.reverse: storage.Storage.identity,
-            storage.Monads.shape: storage.Word.zero,
-            storage.Monads.size: size_impl,
+            Monads.reverse: Storage.identity,
+            Monads.shape: Word.zero,
+            Monads.size: size_impl,
             # Monads.transpose: unsupported
             # Monads.unique: unsupported
 
@@ -209,31 +198,24 @@ class MetaDictionary(MetaNoun, type):
             # },
             # Dyads.cut: unsupported
             # Dyads.divide: unsupported
-            storage.Dyads.drop: expand_dispatch(drop_impl),
+            Dyads.drop: expand_dispatch(drop_impl),
             # Dyads.equal: unsupported
             # Dyads.expand: unsupported
-            storage.Dyads.find: expand_dispatch(find_impl),
+            Dyads.find: expand_dispatch(find_impl),
             # form: unimplemented FIXME
             # format2: unimplemented FIXME
             # Dyads.index: unsupported
             # Dyads.indexInDepth: unsupported
             # Dyads.integerDivide: unimplemented FIXME
-            storage.Dyads.join: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): join_toList,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): join_toList,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): join_words,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): join_floats,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): join_mixed,
-                (storage.NounType.DICTIONARY, storage.StorageType.MIXED_ARRAY): join_toList,
-            },
+            Dyads.join: match_dispatch(join_toList, join_toList, join_words, join_floats, join_mixed, dictionary=join_toList),
             # Dyads.less: unsupported
-            storage.Dyads.match: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Word.false,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Word.false,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Word.false,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Word.false,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Word.false,
-                (storage.NounType.DICTIONARY, storage.StorageType.MIXED_ARRAY): match_dictionary,
+            Dyads.match: {
+                (NounType.INTEGER, StorageType.WORD): Word.false,
+                (NounType.REAL, StorageType.FLOAT): Word.false,
+                (NounType.LIST, StorageType.WORD_ARRAY): Word.false,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Word.false,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Word.false,
+                (NounType.DICTIONARY, StorageType.MIXED_ARRAY): match_dictionary,
             },
             # Dyads.max: unsupported
             # Dyads.min: unsupported
@@ -243,28 +225,37 @@ class MetaDictionary(MetaNoun, type):
             # Dyads.power: unsupported
             # Dyads.reshape unimplemented FIXME
             # Dyads.remainder: unsupported
-            storage.Dyads.rotate: expand_dispatch(storage.Storage.identity),
+            Dyads.rotate: expand_dispatch(Storage.identity),
             # Dyads.split: unsupported
             # Dyads.take unsupported
             # Dyads.times: unsupported
 
-            storage.Dyads.apply: {
-                (storage.NounType.BUILTIN_MONAD, storage.StorageType.WORD): storage.Storage.apply_builtin_monad,
-                (storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_monad,
+            # Extension Monads
+
+            Monads.erase: MixedArray.erase_impl,
+            Monads.truth: Word.false,
+
+            Dyads.applyMonad: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.applyMonad_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.applyMonad_user_monad,
             },
 
-            storage.Triads.apply: {
-                (storage.NounType.BUILTIN_DYAD, storage.StorageType.WORD): storage.Storage.apply_builtin_dyad,
-                (storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_dyad,
+            Dyads.retype: {
+                (NounType.TYPE, StorageType.WORD): MixedArray.retype_impl
+            },
+
+            Triads.applyDyad: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.applyDyad_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.applyDyad_user_dyad,
             },
 
             # Monadic Adverbs
-            storage.Adverbs.converge: storage.Storage.converge_impl,
-            storage.Adverbs.each: each_impl,
-            storage.Adverbs.eachPair: storage.Storage.identity,
-            storage.Adverbs.over: storage.Storage.identity,
-            storage.Adverbs.scanConverging: storage.Storage.scanConverging_impl,
-            storage.Adverbs.scanOver: storage.Storage.identity,
+            MonadicAdverbs.converge: Storage.converge_impl,
+            MonadicAdverbs.each: each_impl,
+            MonadicAdverbs.eachPair: Storage.identity,
+            MonadicAdverbs.over: Storage.identity,
+            MonadicAdverbs.scanConverging: Storage.scanConverging_impl,
+            MonadicAdverbs.scanOver: Storage.identity,
 
             # Dyadic Adverbs
             # Adverbs.each2: unsupported
@@ -274,11 +265,11 @@ class MetaDictionary(MetaNoun, type):
             # Adverbs.iterate: unsupported
             # Adverbs.scanIterating: unsupported
             # Adverbs.scanOverNeutral: unsupported
-            storage.Adverbs.scanWhileOne: {
-                (storage.NounType.BUILTIN_SYMBOL, storage.StorageType.WORD): storage.Storage.whileOne_impl,
+            DyadicAdverbs.scanWhileOne: {
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
-            storage.Adverbs.whileOne: {
-                (storage.NounType.BUILTIN_SYMBOL, storage.StorageType.WORD): storage.Storage.whileOne_impl,
+            DyadicAdverbs.whileOne: {
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 
@@ -287,14 +278,14 @@ class MetaDictionary(MetaNoun, type):
 class Dictionary(Noun, metaclass=MetaDictionary):
     @staticmethod
     def empty():
-        return storage.MixedArray([], storage.NounType.DICTIONARY)
+        return MixedArray([], NounType.DICTIONARY)
 
     @staticmethod
     def new(x):
-        if x.t == storage.StorageType.MIXED_ARRAY:
+        if x.t == StorageType.MIXED_ARRAY:
             if len(x.i) == 0:
                 return error.Error.empty_argument()
 
-            return storage.MixedArray(x.i, storage.NounType.DICTIONARY)
+            return MixedArray(x.i, NounType.DICTIONARY)
         else:
-            return error.Error.bad_initialization()
+            return Word(error.ErrorTypes.BAD_INITIALIZATION, o=NounType.ERROR)

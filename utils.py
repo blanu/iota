@@ -1,4 +1,4 @@
-import storage
+from storage import NounType, StorageType
 
 def identity(i):
     return i
@@ -9,18 +9,40 @@ def expand_dispatch(f):
 def match_dispatch(a, b, c, d, e, dictionary=None):
     if dictionary is None:
         return {
-            (storage.NounType.INTEGER, storage.StorageType.WORD): a,
-            (storage.NounType.REAL, storage.StorageType.FLOAT): b,
-            (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): c,
-            (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): d,
-            (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): e,
+            (NounType.INTEGER, StorageType.WORD): a,
+            (NounType.REAL, StorageType.FLOAT): b,
+            (NounType.LIST, StorageType.WORD_ARRAY): c,
+            (NounType.LIST, StorageType.FLOAT_ARRAY): d,
+            (NounType.LIST, StorageType.MIXED_ARRAY): e,
         }
     else:
         return {
-            (storage.NounType.INTEGER, storage.StorageType.WORD): a,
-            (storage.NounType.REAL, storage.StorageType.FLOAT): b,
-            (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): c,
-            (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): d,
-            (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): e,
-            (storage.NounType.DICTIONARY, storage.StorageType.MIXED_ARRAY): dictionary,
+            (NounType.INTEGER, StorageType.WORD): a,
+            (NounType.REAL, StorageType.FLOAT): b,
+            (NounType.LIST, StorageType.WORD_ARRAY): c,
+            (NounType.LIST, StorageType.FLOAT_ARRAY): d,
+            (NounType.LIST, StorageType.MIXED_ARRAY): e,
+            (NounType.DICTIONARY, StorageType.MIXED_ARRAY): dictionary,
         }
+
+def match_dispatch_dictionary_string(a, b, c, d, e, f, g):
+    return {
+        (NounType.INTEGER, StorageType.WORD): a,
+        (NounType.REAL, StorageType.FLOAT): b,
+        (NounType.LIST, StorageType.WORD_ARRAY): c,
+        (NounType.LIST, StorageType.FLOAT_ARRAY): d,
+        (NounType.LIST, StorageType.MIXED_ARRAY): e,
+        (NounType.DICTIONARY, StorageType.MIXED_ARRAY): f,
+        (NounType.STRING, StorageType.WORD_ARRAY): g,
+    }
+
+def expand_dispatch_character_string(f):
+    return {
+        (NounType.INTEGER, StorageType.WORD): f,
+        (NounType.REAL, StorageType.FLOAT): f,
+        (NounType.LIST, StorageType.WORD_ARRAY): f,
+        (NounType.LIST, StorageType.FLOAT_ARRAY): f,
+        (NounType.LIST, StorageType.MIXED_ARRAY): f,
+        (NounType.CHARACTER, StorageType.WORD): f,
+        (NounType.STRING, StorageType.WORD_ARRAY): f,
+    }

@@ -1,8 +1,6 @@
-import error
-import integer
-import iotaString as string
 import noun
-import storage
+from storage import *
+from utils import *
 
 # atom: Word.true
 
@@ -30,10 +28,10 @@ import storage
 
 # Monads.reverse: Storage.identity
 
-# Monads.shape: storage.Word.zero
+# Monads.shape: Word.zero
 
 def size_impl(i):
-    return storage.Word(i.i, o=storage.NounType.INTEGER)
+    return i.erase()
 
 # Monads.transpose: unsupported
 
@@ -51,14 +49,14 @@ def size_impl(i):
 
 def equal_character(i, x):
     if i.i == x.i:
-        return storage.Word.true()
+        return Word.true()
     else:
-        return storage.Word.false()
+        return Word.false()
 
 # Dyads.expand: unsupported
 
 def find_string(i, x):
-    return storage.Word(i.i).find(storage.WordArray(x.i))
+    return i.erase().find(x.erase())
 
 # form: unimplemented FIXME
 
@@ -71,28 +69,28 @@ def find_string(i, x):
 # Dyads.integerDivide: unsupported
 
 def join_scalar(i, x):
-    return storage.MixedArray([i, x])
+    return i.enclose().join(x.enclose())
 
 def join_words(i, x):
-    return storage.MixedArray([i] + [storage.Word(y) for y in x.i])
+    return i.enclose().join(MixedArray.from_words(x))
 
 def join_floats(i, x):
-    return storage.MixedArray([i] + [storage.Float(y) for y in x.i])
+    return i.enclose().join(MixedArray.from_floats(x))
 
 def join_mixed(i, x):
-    return storage.MixedArray([i] + x.i)
+    return i.enclose().join(x)
 
 def join_character(i, x):
-    return string.String.new([i.i, x.i])
+    return i.enclose().retype(NounType.STRING.symbol()).join(x.enclose().retype(NounType.STRING.symbol()))
 
 def join_string(i, x):
-    return string.String.new([i.i] + x.i)
+    return i.enclose().retype(NounType.STRING.symbol()).join(x)
 
 def less_character(i, x):
-    return storage.Word(i.i).less(storage.Word(x.i))
+    return Word.erase(i).less(Word.erase(x))
 
 def match_character(i, x):
-    return storage.Word(i.i).match(storage.Word(x.i))
+    return Word.erase(i).match(Word.erase(x))
 
 # Dyads.max: unsupported
 
@@ -101,7 +99,7 @@ def match_character(i, x):
 # Dyads.minus: unsupported
 
 def more_character(i, x):
-    return storage.Word(i.i).more(storage.Word(x.i))
+    return Word.erase(i).more(Word.erase(x))
 
 # Dyads.plus: unsupported
 
@@ -132,7 +130,7 @@ def more_character(i, x):
 # scanConverging: Storage.scanConverging_impl
 
 def scanOver_impl(i, f):
-    return string.String.new([i])
+    return i.enclose().retype(NounType.STRING.symbol())
 
 # Dyadic Adverbs
 
@@ -164,53 +162,18 @@ def scanOver_impl(i, f):
 
 # whileOne: Storage.whileOne
 
-# Hot patches
-
-def integer_word_char_impl(i):
-    return Character.new(i.i)
-
-def list_words_char_impl(i):
-    return storage.MixedArray([Character.new(y) for y in i.i])
-
-# char floats: unsupported
-
-def list_mixed_char_impl(i):
-    results = []
-    for y in i.i:
-        if y.t == storage.StorageType.WORD:
-            result = y.char()
-            if result.o == storage.NounType.ERROR:
-                return result
-            else:
-                results.append(result)
-        elif y.t == storage.StorageType.WORD_ARRAY:
-            result = y.char()
-            if result.o == storage.NounType.ERROR:
-                return result
-            else:
-                results.append(result)
-        elif y.t == storage.StorageType.MIXED_ARRAY:
-            result = y.char()
-            if result.o == storage.NounType.ERROR:
-                return result
-            else:
-                results.append(result)
-        else:
-            return error.Error.unsupported_object()
-    return storage.MixedArray(results)
-
-class MetaCharacter(integer.MetaInteger, type):
+class MetaCharacter(noun.MetaNoun, type):
     def __new__(cls, name, bases, dct):
         obj = super().__new__(cls, name, bases, dct)
 
-        noun.Noun.dispatch[(storage.NounType.CHARACTER, storage.StorageType.WORD)] = {
+        noun.Noun.dispatch[(NounType.CHARACTER, StorageType.WORD)] = {
             # Monads
-            storage.Monads.atom: storage.Word.true,
+            Monads.atom: Word.true,
             # Monads.char: unsupported
-            storage.Monads.complementation: storage.Word.false,
-            storage.Monads.enclose: storage.Storage.enclose_impl,
+            Monads.complementation: Word.false,
+            Monads.enclose: Storage.enclose_impl,
             # Monads.enumerate: unsupported
-            storage.Monads.first: storage.Storage.identity,
+            Monads.first: Storage.identity,
             # Monads.floor: unsupported
             # Monads.format: unimplemented FIXME
             # Monads.gradeDown: unsupported
@@ -218,9 +181,9 @@ class MetaCharacter(integer.MetaInteger, type):
             # Monads.group: unsupported
             # Monads.negate: unsupported
             # Monads.reciprocal: unsupported
-            storage.Monads.reverse: storage.Storage.identity,
-            storage.Monads.shape: storage.Word.zero,
-            storage.Monads.size: size_impl,
+            Monads.reverse: Storage.identity,
+            Monads.shape: Word.zero,
+            Monads.size: size_impl,
             # Monads.transpose: unsupported
             # Monads.unique: unsupported
 
@@ -229,46 +192,46 @@ class MetaCharacter(integer.MetaInteger, type):
             # Dyads.cut: unsupported
             # Dyads.divide: unsupported
             # Dyads.drop unsupported
-            storage.Dyads.equal: {
-                (storage.NounType.CHARACTER, storage.StorageType.WORD): equal_character,
+            Dyads.equal: {
+                (NounType.CHARACTER, StorageType.WORD): equal_character,
             },
             # Dyads.expand: unsupported
-            storage.Dyads.find: {
-                (storage.NounType.STRING, storage.StorageType.WORD_ARRAY): find_string,
+            Dyads.find: {
+                (NounType.STRING, StorageType.WORD_ARRAY): find_string,
             },
             # form: unimplemented FIXME
             # format2: unimplemented FIXME
             # Dyads.index: unsupported
             # indexInDepth unimplemented FIXME
             # Dyads.integerDivide: unsupported
-            storage.Dyads.join: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): join_scalar,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): join_scalar,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): join_words,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): join_floats,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): join_mixed,
-                (storage.NounType.DICTIONARY, storage.StorageType.WORD_ARRAY): join_scalar,
-                (storage.NounType.CHARACTER, storage.StorageType.WORD): join_character,
-                (storage.NounType.STRING, storage.StorageType.WORD_ARRAY): join_string,
+            Dyads.join: {
+                (NounType.INTEGER, StorageType.WORD): join_scalar,
+                (NounType.REAL, StorageType.FLOAT): join_scalar,
+                (NounType.LIST, StorageType.WORD_ARRAY): join_words,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): join_floats,
+                (NounType.LIST, StorageType.MIXED_ARRAY): join_mixed,
+                (NounType.DICTIONARY, StorageType.WORD_ARRAY): join_scalar,
+                (NounType.CHARACTER, StorageType.WORD): join_character,
+                (NounType.STRING, StorageType.WORD_ARRAY): join_string,
             },
-            storage.Dyads.less: {
-                (storage.NounType.CHARACTER, storage.StorageType.WORD): less_character,
+            Dyads.less: {
+                (NounType.CHARACTER, StorageType.WORD): less_character,
             },
-            storage.Dyads.match: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Word.false,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Word.false,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Word.false,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Word.false,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Word.false,
-                (storage.NounType.DICTIONARY, storage.StorageType.WORD_ARRAY): storage.Word.false,
-                (storage.NounType.CHARACTER, storage.StorageType.WORD): match_character,
-                (storage.NounType.STRING, storage.StorageType.WORD_ARRAY): storage.Word.false,
+            Dyads.match: {
+                (NounType.INTEGER, StorageType.WORD): Word.false,
+                (NounType.REAL, StorageType.FLOAT): Word.false,
+                (NounType.LIST, StorageType.WORD_ARRAY): Word.false,
+                (NounType.LIST, StorageType.FLOAT_ARRAY): Word.false,
+                (NounType.LIST, StorageType.MIXED_ARRAY): Word.false,
+                (NounType.DICTIONARY, StorageType.WORD_ARRAY): Word.false,
+                (NounType.CHARACTER, StorageType.WORD): match_character,
+                (NounType.STRING, StorageType.WORD_ARRAY): Word.false,
             },
             # Dyads.max: unsupported
             # Dyads.min: unsupported
             # Dyads.minus: unsupported
-            storage.Dyads.more: {
-                (storage.NounType.CHARACTER, storage.StorageType.WORD): more_character,
+            Dyads.more: {
+                (NounType.CHARACTER, StorageType.WORD): more_character,
             },
             # Dyads.plus: unsupported
             # Dyads.power: unsupported
@@ -279,73 +242,56 @@ class MetaCharacter(integer.MetaInteger, type):
             # Dyads.take unsupported
             # Dyads.times: unsupported
 
-            storage.Dyads.apply: {
-                (storage.NounType.BUILTIN_MONAD, storage.StorageType.WORD): storage.Storage.apply_builtin_monad,
-                (storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_monad,
+            # Extension Monads
+
+            Monads.erase: Word.erase_impl,
+            Monads.truth: Word.false,
+
+            # Extension Dyads
+
+            Dyads.applyMonad: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.applyMonad_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.applyMonad_user_monad,
             },
 
-            storage.Triads.apply: {
-                (storage.NounType.BUILTIN_DYAD, storage.StorageType.WORD): storage.Storage.apply_builtin_dyad,
-                (storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_dyad,
+            Dyads.retype: {
+                (NounType.TYPE, StorageType.WORD): Word.retype_impl
+            },
+
+            # Extension Triads
+
+            Triads.applyDyad: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.applyDyad_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.applyDyad_user_dyad,
             },
 
             # Monadic Adverbs
-            storage.Adverbs.converge: storage.Storage.converge_impl,
-            storage.Adverbs.each: storage.Storage.each_scalar,
+            MonadicAdverbs.converge: Storage.converge_impl,
+            MonadicAdverbs.each: Storage.each_scalar,
             #StorageAdverbs.eachPair: unsupported
-            storage.Adverbs.over: storage.Storage.identity,
-            storage.Adverbs.scanConverging: storage.Storage.scanConverging_impl,
-            storage.Adverbs.scanOver: scanOver_impl,
+            MonadicAdverbs.over: Storage.identity,
+            MonadicAdverbs.scanConverging: Storage.scanConverging_impl,
+            MonadicAdverbs.scanOver: scanOver_impl,
 
             # Dyadic Adverbs
-            storage.Adverbs.each2: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Storage.each2_scalar,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Storage.each2_scalar,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Storage.each2_scalar,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Storage.each2_scalar,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Storage.each2_scalar,
-            },
-            storage.Adverbs.eachLeft: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Storage.eachLeft_scalar,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Storage.eachLeft_scalar,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Storage.eachLeft_words,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Storage.eachLeft_floats,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Storage.eachLeft_mixed,
-            },
-            storage.Adverbs.eachRight: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Storage.eachRight_scalar,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Storage.eachRight_scalar,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Storage.eachRight_words,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Storage.eachRight_floats,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Storage.eachRight_mixed,
-            },
-            storage.Adverbs.overNeutral: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Storage.overNeutral_scalar,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Storage.overNeutral_scalar,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Storage.overNeutral_scalar,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Storage.overNeutral_scalar,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Storage.overNeutral_scalar,
-            },
+            DyadicAdverbs.each2: expand_dispatch(Storage.each2_scalar),
+            DyadicAdverbs.eachLeft: match_dispatch(Storage.eachLeft_scalar, Storage.eachLeft_scalar, Storage.eachLeft_words, Storage.eachLeft_floats, Storage.eachLeft_mixed),
+            DyadicAdverbs.eachRight: match_dispatch(Storage.eachRight_scalar, Storage.eachRight_scalar, Storage.eachRight_words, Storage.eachRight_floats, Storage.eachRight_mixed),
+            DyadicAdverbs.overNeutral: expand_dispatch(Storage.overNeutral_scalar),
             # Adverbs.iterate: unsupported
             # Adverbs.scanIterating: unsupported
-            storage.Adverbs.scanOverNeutral: {
-                (storage.NounType.INTEGER, storage.StorageType.WORD): storage.Storage.scanOverNeutral_scalar,
-                (storage.NounType.REAL, storage.StorageType.FLOAT): storage.Storage.scanOverNeutral_scalar,
-                (storage.NounType.LIST, storage.StorageType.WORD_ARRAY): storage.Storage.scanOverNeutral_scalar,
-                (storage.NounType.LIST, storage.StorageType.FLOAT_ARRAY): storage.Storage.scanOverNeutral_scalar,
-                (storage.NounType.LIST, storage.StorageType.MIXED_ARRAY): storage.Storage.scanOverNeutral_scalar,
+            DyadicAdverbs.scanOverNeutral: expand_dispatch(Storage.scanOverNeutral_scalar),
+            DyadicAdverbs.scanWhileOne: {
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             },
-            storage.Adverbs.scanWhileOne: {
-                (storage.NounType.BUILTIN_SYMBOL, storage.StorageType.WORD): storage.Storage.whileOne_impl,
-            },
-            storage.Adverbs.whileOne: {
-                (storage.NounType.BUILTIN_SYMBOL, storage.StorageType.WORD): storage.Storage.whileOne_impl,
+            DyadicAdverbs.whileOne: {
+                (NounType.BUILTIN_SYMBOL, StorageType.WORD): Storage.whileOne_impl,
             }
         }
 
         return obj
 
-class Character(integer.Integer, metaclass=MetaCharacter):
+class Character(noun.Noun, metaclass=MetaCharacter):
     @staticmethod
     def new(i):
-        return storage.Word(i, storage.NounType.CHARACTER)
+        return Word(i, NounType.CHARACTER)

@@ -9,7 +9,7 @@ class MetaInteger(MetaNoun, type):
         Noun.dispatch[(NounType.INTEGER, StorageType.WORD)] = {
             # Monads
             Monads.atom: Word.true,
-            # Monads.char: hotpatched by character.py to avoid circular imports
+            Monads.char: Word.char_impl,
             Monads.complementation: Storage.complementation_impl,
             Monads.enclose: Word.enclose_impl,
             Monads.enumerate: Word.enumerate_impl,
@@ -98,36 +98,49 @@ class MetaInteger(MetaNoun, type):
             # Dyads.take unsupported
             Dyads.times: match_dispatch(Word.times_word, Word.times_float, Word.times_words, Word.times_floats, Word.times_mixed),
 
-            storage.Dyads.apply: {
-                (storage.NounType.BUILTIN_MONAD, storage.StorageType.WORD): storage.Storage.apply_builtin_monad,
-                (storage.NounType.USER_MONAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_monad,
+            # Extension Monads
+
+            Monads.erase: Word.erase_impl,
+            Monads.truth: Word.truth_impl,
+
+            # Extension Dyads
+
+            Dyads.applyMonad: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.applyMonad_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.applyMonad_user_monad,
             },
 
-            storage.Triads.apply: {
-                (storage.NounType.BUILTIN_DYAD, storage.StorageType.WORD): storage.Storage.apply_builtin_dyad,
-                (storage.NounType.USER_DYAD, storage.StorageType.MIXED_ARRAY): storage.Storage.apply_user_dyad,
+            Dyads.retype: {
+                (NounType.TYPE, StorageType.WORD): Word.retype_impl
+            },
+
+            # Extension Triads
+
+            Triads.applyDyad: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.applyDyad_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.applyDyad_user_dyad,
             },
 
             # Monadic Adverbs
-            Adverbs.converge: Storage.converge_impl,
-            Adverbs.each: Storage.each_scalar,
+            MonadicAdverbs.converge: Storage.converge_impl,
+            MonadicAdverbs.each: Storage.each_scalar,
             #StorageAdverbs.eachPair: unsupported
-            Adverbs.over: Storage.identity,
-            Adverbs.scanConverging: Storage.scanConverging_impl,
-            Adverbs.scanOver: Word.scanOver_impl,
+            MonadicAdverbs.over: Storage.identity,
+            MonadicAdverbs.scanConverging: Storage.scanConverging_impl,
+            MonadicAdverbs.scanOver: Word.scanOver_impl,
 
             # Dyadic Adverbs
-            Adverbs.each2: expand_dispatch(Storage.each2_scalar),
-            Adverbs.eachLeft: match_dispatch(Storage.eachLeft_scalar, Storage.eachLeft_scalar, Storage.eachLeft_words, Storage.eachLeft_floats, Storage.eachLeft_mixed),
-            Adverbs.eachRight: match_dispatch(Storage.eachRight_scalar, Storage.eachRight_scalar, Storage.eachRight_words, Storage.eachRight_floats, Storage.eachRight_mixed),
-            Adverbs.overNeutral: expand_dispatch(Storage.overNeutral_scalar),
-            # Adverbs.iterate: unsupported
-            # Adverbs.scanIterating: unsupported
-            Adverbs.scanOverNeutral: expand_dispatch(Storage.scanOverNeutral_scalar),
-            Adverbs.scanWhileOne: {
+            DyadicAdverbs.each2: expand_dispatch(Storage.each2_scalar),
+            DyadicAdverbs.eachLeft: match_dispatch(Storage.eachLeft_scalar, Storage.eachLeft_scalar, Storage.eachLeft_words, Storage.eachLeft_floats, Storage.eachLeft_mixed),
+            DyadicAdverbs.eachRight: match_dispatch(Storage.eachRight_scalar, Storage.eachRight_scalar, Storage.eachRight_words, Storage.eachRight_floats, Storage.eachRight_mixed),
+            DyadicAdverbs.overNeutral: expand_dispatch(Storage.overNeutral_scalar),
+            # DyadicAdverbs.iterate: unsupported
+            # DyadicAdverbs.scanIterating: unsupported
+            DyadicAdverbs.scanOverNeutral: expand_dispatch(Storage.scanOverNeutral_scalar),
+            DyadicAdverbs.scanWhileOne: {
                 (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.whileOne_impl,
             },
-            Adverbs.whileOne: {
+            DyadicAdverbs.whileOne: {
                 (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.whileOne_impl,
             }
         }

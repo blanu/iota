@@ -16,6 +16,28 @@ class MetaSymbol(MetaNoun, type):
             Dyads.equal: {
                 (NounType.BUILTIN_SYMBOL, StorageType.WORD): builtin_symbol_equal_builtin_symbol,
             },
+
+            # Extension Monads
+
+            Monads.erase: Word.erase_impl,
+
+            # Extension Dyads
+
+            Dyads.applyMonad: {
+                (NounType.BUILTIN_MONAD, StorageType.WORD): Storage.applyMonad_builtin_monad,
+                (NounType.USER_MONAD, StorageType.MIXED_ARRAY): Storage.applyMonad_user_monad,
+            },
+
+            Dyads.retype: {
+                (NounType.TYPE, StorageType.WORD): Word.retype_impl
+            },
+
+            # Extension Triads
+
+            Triads.applyDyad: {
+                (NounType.BUILTIN_DYAD, StorageType.WORD): Storage.applyDyad_builtin_dyad,
+                (NounType.USER_DYAD, StorageType.MIXED_ARRAY): Storage.applyDyad_user_dyad,
+            },
         }
 
         return obj
