@@ -1,3 +1,5 @@
+from storage import *
+
 # class IStorageRegisterNetwork:
 #     @staticmethod
 #     def allocate(i):
@@ -314,27 +316,43 @@
 #         f = self.fr.i
 #         x = self.xr.i
 #         self.rr.i = i.dispatchDyad(f, x)
+from storage import NounType
 
-class StorageRegister:
+
+class EvalRegister:
+    @staticmethod
+    def allocate_zero():
+        return EvalRegister.allocate(Word(0, o=NounType.INTEGER))
+
     @staticmethod
     def allocate(i):
-        return StorageRegister(i)
-
-    @staticmethod
-    def allocateDispatchDyad(i, f, x):
-        StorageRegister.allocate(i).dispatchDyad(f, x)
+        return EvalRegister(i)
 
     def __init__(self, i):
         self.i = i
+        self.r = None
 
-    def store(self, i):
+    def store_i(self, i):
         self.i = i
 
-    def fetch(self):
+    def fetch_i(self):
         return self.i
 
-    def dispatchMonad(self, f):
-        return self.i.dispatchMonad(f)
+    def fetch_r(self):
+        return self.r
 
-    def dispatchDyad(self, f, x):
-        return self.i.dispatchDyad(f, x)
+    def load_i(self, d):
+        (x, rest) = Storage.from_bytes(d)
+        if len(rest) == 0:
+            self.store_i(x)
+        else:
+            raise Exception("bad decode, %d bytes leftover" % len(rest))
+
+    def retrieve_r(self):
+        x = self.fetch_r()
+        data = x.to_bytes()
+        return data
+
+    def eval(self):
+        result = self.i.evaluate()
+        self.r = result

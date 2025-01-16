@@ -1,5 +1,4 @@
 from enum import Enum
-import storage
 
 class ErrorTypes(Enum):
     BAD_INDEX_TYPE = 0

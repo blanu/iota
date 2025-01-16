@@ -5,8 +5,13 @@ from nouns import *
 def F(*i):
     return Object.from_python_to_expression(list(i))
 
-def isError(i):
-    return i.o == NounType.ERROR
+def C(i):
+    if len(i) == 1:
+        utf32 = i.encode("utf-32be")
+        x = int.from_bytes(utf32, 'big')
+        return Word(x, o=NounType.CHARACTER)
+    else:
+        raise Exception('invalid character')
 
 def eval(*e):
     se = Object.from_python_to_expression(list(e))
@@ -29,6 +34,15 @@ class Object:
                 return MixedArray([Object.from_python(y) for y in i], o=NounType.LIST)
         elif type(i) == tuple:
             return Function.new([Object.from_python(y) for y in list(i)])
+        elif type(i) == str:
+            utf32 = i.encode("utf-32be")
+            ints = [int.from_bytes(utf32[y:y+4], 'big') for y in range(0, len(utf32), 4)]
+            return WordArray(ints, o=NounType.STRING)
+        elif type(i) == dict:
+            keys = i.keys()
+            values = i.values()
+            zipped = zip(keys, values)
+            return MixedArray(zipped, o=NounType.DICTIONARY)
         elif isinstance(i, Storage):
             return i
 
@@ -36,6 +50,10 @@ class Object:
     def from_python_to_expression(i):
         parts = [Object.from_python(y) for y in i]
         return Function.new(parts)
+
+    @staticmethod
+    def from_bytes(d):
+        return Storage.from_bytes(d)
 
     @staticmethod
     def to_python(i):
@@ -51,11 +69,18 @@ class Object:
             elif i.t == StorageType.MIXED_ARRAY:
                 return [Object.to_python(y) for y in i.i]
         elif i.o == NounType.CHARACTER:
-            return None # FIXME
+            b = int.to_bytes(i.i, 4, 'big')
+            return b.decode("utf-32be")
         elif i.o == NounType.STRING:
-            return None # FIXME
+            b = b''.join([int.to_bytes(y, 4, 'big') for y in i.i])
+            return b.decode("utf-32be")
         elif i.o == NounType.DICTIONARY:
-            return None # FIXME
+            results = {}
+            for pair in i.i:
+                key = pair.i[0]
+                value = pair.i[1]
+                results[key] = value
+            return results
         elif i.o == NounType.USER_SYMBOL:
             return None # FIXME
         elif i.o == NounType.USER_MONAD:
